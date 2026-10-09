@@ -106,7 +106,7 @@
 .rv-fb:hover { color: var(--color-accent); }
 
 /* ── S10 history ───────────────────────────────────────────── */
-.bars { display: flex; gap: 12px; align-items: flex-end; height: 180px; margin-top: 8px; border-bottom: 2px solid var(--color-divider); }
+.bars { display: flex; gap: 12px; align-items: flex-end; height: 180px; margin: 8px 0 32px; border-bottom: 2px solid var(--color-divider); }
 .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; text-decoration: none; color: inherit; position: relative; min-width: 0; }
 .bar-val { font-family: var(--font-heading); font-weight: 800; font-size: 20px; }
 .bar { width: 100%; max-width: 72px; background: var(--color-text); }

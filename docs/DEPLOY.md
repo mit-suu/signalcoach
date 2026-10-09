@@ -2,7 +2,7 @@
 
 ```
 Browser ──► Vercel (client/, Next.js) ──/api/* rewrite──► Azure App Service (server/, Express) ──► MongoDB Atlas
-                                                                    └──► LLM endpoint (GLM on Modal, OpenAI-compatible)
+                                                                    └──► Google Gemini API
 ```
 
 The browser only talks to the Vercel origin. `/api/*` is proxied to Azure, so the auth cookie is
@@ -45,11 +45,11 @@ Later, for RAG: the same cluster supports Atlas Vector Search; no code change to
 | `COOKIE_SAMESITE` | `lax` |
 | `TRUST_PROXY` | `1` |
 | `CORS_ORIGINS` | *(empty — traffic comes through the Vercel rewrite)* |
-| `LLM_PROVIDER` | `openai_compatible` (`mock` is refused in production) |
-| `LLM_BASE_URL` | `https://trantuanhiep28122003--ep-signalcoach-server.ap-south.modal.direct/v1` |
-| `MODAL_PROXY_TOKEN_ID` / `MODAL_PROXY_TOKEN_SECRET` | Modal proxy auth token (key sent = `ID.SECRET`) |
-| `LLM_MODEL_PERSONA` | `signalcoach` (JUDGE/REVIEW fall back to it) |
-| `LLM_REASONING_PERSONA` / `_JUDGE` / `_REVIEW` | `low` / `low` / `high` |
+| `LLM_PROVIDER` | `gemini` (`mock` is refused in production) |
+| `GEMINI_API_KEYS` | one or more keys, comma-separated (backup key used on 401/403/429) |
+| `LLM_MODEL_PERSONA` / `_JUDGE` / `_REVIEW` | leave empty for the defaults (`gemini-3.5-flash` / `gemini-3.5-flash-lite` / `gemini-3.5-flash`) |
+| `LLM_MODEL_FALLBACKS` | empty = `gemini-3.5-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite` |
+| `LLM_REASONING_PERSONA` / `_JUDGE` / `_REVIEW` | `minimal` / `minimal` / `high` |
 | `LLM_TIMEOUT_MS` | `60000` |
 | `SCM_DO_BUILD_DURING_DEPLOYMENT` | `false` — we upload a prebuilt package (below) |
 

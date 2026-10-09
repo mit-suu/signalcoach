@@ -65,7 +65,7 @@ export function SessionRoom({ params }: { params: Promise<{ sessionId: string }>
       setStreaming("");
       setEndProposed(false);
       const optimistic: Turn = { index: session.turns.length, role: "user", text: pending.text };
-      setSession((s) => (s && !s.turns.some((t) => t.index === optimistic.index) ? { ...s, turns: [...s.turns, optimistic] } : s));
+      setSession((s) => (s && !s.turns.some((t) => t.index === optimistic.index) ? { ...s, turns: [...s.turns, optimistic], questionCount: s.questionCount + 1 } : s));
 
       let finished = false;
       try {
