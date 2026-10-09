@@ -1,5 +1,6 @@
 import type {
   ApiErrorBody,
+  GuideBrief,
   MeResponse,
   Principle,
   PublicGuide,
@@ -45,6 +46,8 @@ const json = (body: unknown): RequestInit => ({ method: "POST", body: JSON.strin
 export const api = {
   guides: () => request<{ guides: PublicGuide[] }>("/guides").then((r) => r.guides),
   guide: (id: string) => request<{ guide: PublicGuide }>(`/guides/${encodeURIComponent(id)}`).then((r) => r.guide),
+  generateGuide: (brief: GuideBrief) => request<{ guide?: PublicGuide; clarify?: string }>("/guides/generate", json(brief)),
+  deleteGuide: (id: string) => request<void>(`/guides/${encodeURIComponent(id)}`, { method: "DELETE" }),
   principles: () => request<{ principles: Principle[] }>("/principles").then((r) => r.principles),
 
   me: () => request<MeResponse>("/auth/me"),
@@ -59,6 +62,8 @@ export const api = {
   createSession: (guideId: string) =>
     request<{ session: SessionView }>("/sessions", json({ guideId })).then((r) => r.session),
   endSession: (id: string) => request<{ session: SessionView }>(`/sessions/${id}/end`, { method: "POST" }).then((r) => r.session),
+  buildScorecard: (id: string) =>
+    request<{ session: SessionView }>(`/sessions/${id}/scorecard`, { method: "POST" }).then((r) => r.session),
   deleteSession: (id: string) => request<void>(`/sessions/${id}`, { method: "DELETE" }),
   deleteAllSessions: () => request<{ deleted: number }>("/sessions", { method: "DELETE" }),
 };

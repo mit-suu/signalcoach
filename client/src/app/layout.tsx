@@ -5,6 +5,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { Nav } from "@/components/Nav";
 import "@/styles/modernist.css";
 import "./globals.css";
+import "./screens.css";
 
 const archivo = Archivo({
   variable: "--font-archivo",

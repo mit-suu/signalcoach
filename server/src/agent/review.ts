@@ -122,15 +122,20 @@ export function buildReviewMessages(session: SessionDoc): ChatMessage[] {
     "Viết tiếng Việt. Trích dẫn phải nguyên văn.",
   ].join("\n");
 
+  const userTurnIdx = session.turns.filter((t) => t.role === "user").map((t) => t.index);
   const signalLines = session.signals.map((s) => {
     const def = defs.get(s.signalId)!;
     const personaTurn = s.surfacedTurn !== undefined && s.surfacedTurn !== null ? session.turns[s.surfacedTurn] : undefined;
+    const window = s.surfacedTurn != null ? userTurnIdx.filter((i) => i > s.surfacedTurn!).slice(0, FOLLOW_UP_WINDOW) : [];
     return [
       `- ${s.signalId} "${def.label}" (${def.kind}, ${def.difficulty})`,
       `  trạng thái tạm: ${s.status}${s.surfacedTurn != null ? `, persona kể ở lượt #${s.surfacedTurn}` : ""}${s.evidenceTurn != null ? `, bằng chứng tạm: lượt #${s.evidenceTurn} "${s.evidenceQuote ?? ""}"` : ""}`,
       personaTurn ? `  persona đã nói: "${personaTurn.text}"` : "  persona chưa kể.",
-      `  kiểu hỏi tiếp mong đợi: ${def.layers[0]!.unlockIntent}`,
-    ].join("\n");
+      window.length ? `  CHỈ các câu hỏi ${window.map((i) => `#${i}`).join(", ")} được tính là hỏi tiếp tín hiệu này (cửa sổ ${FOLLOW_UP_WINDOW} câu). Câu hỏi ngoài cửa sổ, hoặc hỏi về tín hiệu khác, không tính.` : "",
+      `  tín hiệu gốc: "${def.layers[0]!.reveal}" — kiểu hỏi tiếp mong đợi: ${def.layers[0]!.unlockIntent}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
   });
 
   const user = [
@@ -180,13 +185,14 @@ export async function generateScorecard(session: SessionDoc): Promise<{ scorecar
 
 const norm = (s: string) => s.toLowerCase().replace(/[“”"'’`.,;:!?()\-–—…]/g, " ").replace(/\s+/g, " ").trim();
 const words = (s: string) => new Set(norm(s).split(" ").filter((w) => w.length > 1));
+/** Dice coefficient over word sets — 1 = same words, 0 = nothing in common. */
 function similarity(a: string, b: string): number {
   const A = words(a);
   const B = words(b);
   if (!A.size || !B.size) return 0;
   let inter = 0;
   for (const w of A) if (B.has(w)) inter++;
-  return inter / Math.min(A.size, B.size);
+  return (2 * inter) / (A.size + B.size);
 }
 const quoteIn = (quote: string, text: string) => Boolean(quote.trim()) && norm(text).includes(norm(quote));
 
@@ -271,8 +277,9 @@ export function selfCheck(session: SessionDoc, review: ReviewOutput): { scorecar
         suggestedQuestion = proposed;
       }
       if (!suggestedQuestion) {
-        const snippet = personaQuote ? personaQuote.split(/(?<=[.!?…])\s+/)[0]!.slice(0, 80) : def.label;
-        suggestedQuestion = `${guide.persona.name.split(" ").at(-1)} vừa nhắc "${snippet}" — kể mình nghe thêm, lúc đó chính xác chuyện gì đã xảy ra?`;
+        // Quote the signal line itself (what the persona was told to drop), trimmed to a readable length.
+        const snippet = def.layers[0]!.reveal.replace(/[….]+$/, "").slice(0, 70);
+        suggestedQuestion = `${guide.persona.name.split(" ").at(-1)} vừa nhắc "${snippet}…" — lúc đó chính xác chuyện gì đã xảy ra?`;
         log.push({ target, check: "suggested question fallback", before: proposed || "(none)", after: suggestedQuestion });
       }
     }
@@ -289,6 +296,10 @@ export function selfCheck(session: SessionDoc, review: ReviewOutput): { scorecar
     const target = `feedback:#${f.turnIndex}`;
     if (!turn || turn.role !== "user") {
       log.push({ target, check: "turn is not an interviewer question", before: String(f.turnIndex), after: "(dropped)" });
+      continue;
+    }
+    if (turn.flags?.includes("break_attempt")) {
+      log.push({ target, check: "break-character attempt is not a questioning mistake", before: f.type, after: "(dropped)" });
       continue;
     }
     if (f.type === "good" || seen.has(f.turnIndex)) continue;

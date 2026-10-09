@@ -17,7 +17,7 @@ export interface ChatOptions {
   model: string;
   temperature?: number;
   maxTokens?: number;
-  /** Thinking effort. Gemini: thinkingLevel; OpenAI-compatible: reasoning_effort. */
+  /** Thinking effort. Gemini: thinkingLevel (minimal is fastest); OpenAI-compatible: reasoning_effort. */
   reasoningEffort?: ReasoningEffort;
   signal?: AbortSignal;
   /** Optional JSON schema the provider may enforce on completeJson output (Gemini responseJsonSchema). */

@@ -65,6 +65,7 @@ export function buildJudgeMessages(session: SessionDoc, question: string): ChatM
   const pending = session.signals.filter((s) => s.status === "pending");
   // Open = can still be followed up: seeded (window open) or already caught/partial (deeper layers available)
   const open = session.signals.filter((s) => s.status === "seeded" || s.status === "partial" || s.status === "caught");
+  const closed = session.signals.filter((s) => s.status === "missed" || s.status === "unsure");
   const recent = session.turns.slice(-RECENT_TURNS);
 
   const system = [
@@ -87,6 +88,8 @@ export function buildJudgeMessages(session: SessionDoc, question: string): ChatM
     "- partial: có chạm tới nhưng không mời kể thêm, hoặc chỉ nhắc lướt rồi chuyển hướng.",
     "- none: không liên quan.",
     "evidence = trích nguyên văn phần câu hỏi làm bằng chứng. Nếu không chắc, hạ confidence thay vì đoán.",
+    "Chỉ gán followUp cho tín hiệu trong danh sách OPEN. Nếu câu hỏi đào vào một tín hiệu EXPIRED (đã hết cửa sổ hỏi tiếp) hoặc vào chi tiết không thuộc tín hiệu nào, trả về signalId = null, verdict = none — KHÔNG gán sang tín hiệu OPEN gần giống. EXPIRED là trạng thái tín hiệu, không liên quan tới loại câu hỏi closed.",
+    "notes viết tiếng Việt có dấu.",
     "",
     "plantCandidate: trong các tín hiệu PENDING, chọn tín hiệu mà persona có thể kể ra một cách TỰ NHIÊN khi trả lời câu hỏi này (chủ đề câu hỏi dẫn tới nó). Null nếu không có cái nào hợp. Không chọn khi câu hỏi là double.",
     "",
@@ -114,6 +117,7 @@ export function buildJudgeMessages(session: SessionDoc, question: string): ChatM
     "",
     `OPEN_IDS=${open.map((s) => s.signalId).join(",")}`,
     open.length ? `Tín hiệu OPEN (persona đã kể, có thể hỏi sâu):\n${open.map(fmtSignal).join("\n")}` : "Tín hiệu OPEN: (chưa có)",
+    closed.length ? `Tín hiệu EXPIRED (đã kể nhưng hết cửa sổ hỏi tiếp — không còn tính, không ảnh hưởng questionType):\n${closed.map(fmtSignal).join("\n")}` : "",
     "",
     `Hội thoại gần đây (${recent.length} lượt gần nhất):`,
     ...recent.map((t) => `#${t.index} ${t.role === "user" ? "Interviewer" : guide.persona.name}: ${t.text}`),

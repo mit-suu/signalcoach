@@ -14,7 +14,7 @@ const csv = z
       .filter(Boolean),
   );
 
-const effort = z.enum(["", "none", "low", "medium", "high"]);
+const effort = z.enum(["", "none", "minimal", "low", "medium", "high"]);
 
 const EnvSchema = z
   .object({
@@ -51,13 +51,14 @@ const EnvSchema = z
     // Models tried in order when the primary one is overloaded (503) or unavailable (404).
     LLM_MODEL_FALLBACKS: csv,
     // Thinking effort per role; empty = provider default. Persona/judge sit on the 3s first-token budget (NFR-1).
-    LLM_REASONING_PERSONA: effort.default("low"),
-    LLM_REASONING_JUDGE: effort.default("low"),
+    LLM_REASONING_PERSONA: effort.default("minimal"),
+    LLM_REASONING_JUDGE: effort.default("minimal"),
     LLM_REASONING_REVIEW: effort.default("high"),
     LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
   })
   .transform((e) => {
-    const geminiDefaults = { persona: "gemini-3.5-flash", judge: "gemini-3.5-flash-lite", review: "gemini-3.8-flash" };
+    // Measured 2026-10-09: 3.5-flash/minimal ≈ 1s to first token (NFR-1); 3.8-flash was 30–80s under load.
+    const geminiDefaults = { persona: "gemini-3.5-flash", judge: "gemini-3.5-flash-lite", review: "gemini-3.5-flash" };
     const isGemini = e.LLM_PROVIDER === "gemini";
     const persona = e.LLM_MODEL_PERSONA || (isGemini ? geminiDefaults.persona : "");
     return {
@@ -68,7 +69,7 @@ const EnvSchema = z
         persona,
         judge: e.LLM_MODEL_JUDGE || (isGemini ? geminiDefaults.judge : persona),
         review: e.LLM_MODEL_REVIEW || (isGemini ? geminiDefaults.review : persona),
-        fallbacks: e.LLM_MODEL_FALLBACKS.length ? e.LLM_MODEL_FALLBACKS : isGemini ? ["gemini-3.5-flash", "gemini-3.5-flash-lite"] : [],
+        fallbacks: e.LLM_MODEL_FALLBACKS.length ? e.LLM_MODEL_FALLBACKS : isGemini ? ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"] : [],
       },
     };
   })
@@ -104,7 +105,7 @@ function loadEnv(): Env {
 
 export const env = loadEnv();
 
-export type ReasoningEffort = "none" | "low" | "medium" | "high";
+export type ReasoningEffort = "none" | "minimal" | "low" | "medium" | "high";
 
 /** Model + thinking effort per agent role. */
 const role = (model: string, effort: string) => ({ model, reasoningEffort: (effort || undefined) as ReasoningEffort | undefined });
