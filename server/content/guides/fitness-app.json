@@ -1,0 +1,98 @@
+{
+  "id": "fitness-app",
+  "context": "Làm quen sản phẩm",
+  "title": "App tập luyện",
+  "goal": "Hiểu vì sao người dùng mới đăng ký app tập luyện nhưng bỏ trong tuần đầu tiên.",
+  "estimatedMinutes": 15,
+  "suggestedQuestions": [
+    "Kể mình nghe một ngày làm việc bình thường của anh.",
+    "Lần gần nhất anh cài một app tập luyện, chuyện gì đã xảy ra?",
+    "Hiện giờ anh vận động vào những lúc nào?",
+    "Lần gần nhất anh bỏ dở một kế hoạch tập là khi nào?"
+  ],
+  "persona": {
+    "id": "daniel",
+    "name": "Daniel",
+    "age": 29,
+    "initial": "D",
+    "tagline": "Y tá ca đêm, đăng ký ba lần rồi bỏ",
+    "background": "Y tá khoa cấp cứu, làm ca đêm xoay vòng. Đã đăng ký cùng một app tập luyện ba lần.",
+    "traits": ["Hài hước", "Mệt mỏi", "Tự trách bản thân"],
+    "speakingStyle": "Hay đùa để né chuyện khó, xưng \"tôi\", trả lời dài khi nói về công việc nhưng lảng tránh khi nói về bản thân.",
+    "openingMessage": "Chào bạn, tôi là Daniel. Vừa hết ca nên nếu tôi hơi lơ mơ thì thông cảm nhé, haha."
+  },
+  "signals": [
+    {
+      "id": "daniel-three-signups",
+      "label": "Đăng ký ba lần rồi bỏ",
+      "kind": "behavior",
+      "difficulty": "easy",
+      "layers": [
+        { "depth": 1, "reveal": "Tôi đăng ký cái app đó ba lần rồi đấy, haha. Lần nào cũng tự nhủ lần này sẽ khác.", "unlockIntent": "Hỏi về từng lần đăng ký, hoặc lần gần nhất chuyện gì đã xảy ra." },
+        { "depth": 2, "reveal": "Lần đầu là đầu năm, lần hai sau khi đi khám sức khoẻ, lần ba là tháng trước vì thằng bạn cùng phòng rủ. Mỗi lần được đúng tuần đầu.", "unlockIntent": "Hỏi điều gì giống nhau giữa ba lần, hoặc chuyện gì xảy ra sau tuần đầu." },
+        { "depth": 3, "reveal": "Tôi nghĩ vấn đề không phải app. Tôi cứ đăng ký lúc đang 'quyết tâm', rồi ca đêm quay lại là xong. Đăng ký thì miễn phí, tập thì không.", "unlockIntent": "Hỏi lúc 'quyết tâm' đó khác gì lúc ca đêm quay lại." }
+      ],
+      "rationalization": "Chắc tôi thuộc dạng thích đăng ký hơn thích tập, haha."
+    },
+    {
+      "id": "daniel-shift",
+      "label": "Ca đêm đảo lộn lịch tập",
+      "kind": "behavior",
+      "difficulty": "easy",
+      "layers": [
+        { "depth": 1, "reveal": "Lịch ca của tôi xoay vòng, tuần này đêm, tuần sau ngày, nên kế hoạch tập nào cũng vỡ.", "unlockIntent": "Hỏi lịch cụ thể của một tuần ca đêm, anh tập vào lúc nào." },
+        { "depth": 2, "reveal": "Tuần ca đêm tôi về nhà 8 giờ sáng, ngủ tới 3 giờ chiều, ăn rồi lại đi làm. App thì gửi 'buổi tập sáng' đúng lúc tôi vừa lết về.", "unlockIntent": "Hỏi anh làm gì với thông báo đó, hoặc 'sáng' của anh là lúc nào." },
+        { "depth": 3, "reveal": "Tôi cần cái gì hiểu rằng 'sáng' của tôi là 4 giờ chiều. Chưa có app nào hỏi tôi làm ca gì cả.", "unlockIntent": "Hỏi anh đã thử chỉnh lịch trong app chưa, chuyện gì xảy ra." }
+      ],
+      "rationalization": "Làm y tá thì ai cũng vậy, quen rồi."
+    },
+    {
+      "id": "daniel-gym-shame",
+      "label": "Ngại khi vào phòng gym",
+      "kind": "emotion",
+      "difficulty": "hard",
+      "layers": [
+        { "depth": 1, "reveal": "Phòng gym thì… thôi, tôi hợp tập ở nhà hơn.", "unlockIntent": "Hỏi điều gì ở phòng gym khiến anh không thoải mái, lần cuối vào gym thế nào." },
+        { "depth": 2, "reveal": "Lần cuối tôi vào gym, tôi đứng ở máy chạy 10 phút rồi về. Ai cũng có vẻ biết mình đang làm gì, còn tôi thì không. Tôi thấy mình như thằng ngố.", "unlockIntent": "Hỏi thêm về cảm giác đó, hoặc chuyện gì xảy ra sau hôm ấy." },
+        { "depth": 3, "reveal": "Nói thật là tôi tăng gần 10 ký từ hồi làm ca đêm. Vào đó tôi cứ nghĩ người ta nhìn. Tập ở nhà không ai thấy, nhưng ở nhà thì tôi lại nằm.", "unlockIntent": "Hỏi ở nhà thì chuyện gì ngăn anh tập." }
+      ],
+      "rationalization": "Chắc tôi lười thôi, không phải vì gym đâu."
+    },
+    {
+      "id": "daniel-roommate",
+      "label": "Bạn cùng phòng rủ tập",
+      "kind": "behavior",
+      "difficulty": "medium",
+      "layers": [
+        { "depth": 1, "reveal": "Dạo này thằng bạn cùng phòng hay rủ chạy, tuần được hai ba buổi.", "unlockIntent": "Hỏi về bạn cùng phòng: những buổi đó diễn ra thế nào, khác gì tự tập." },
+        { "depth": 2, "reveal": "Nó gõ cửa là tôi đi, không cần nghĩ. Có người đợi ngoài cửa khác hẳn cái thông báo trên điện thoại.", "unlockIntent": "Hỏi chuyện gì xảy ra khi bạn cùng phòng không ở đó." },
+        { "depth": 3, "reveal": "Tuần nó đi công tác là tôi nghỉ luôn. Tôi nhận ra tôi không thiếu động lực, tôi thiếu người kéo đi.", "unlockIntent": "Hỏi anh đã tìm cách nào khác để có người kéo đi chưa." }
+      ],
+      "rationalization": "Có bạn thì vui hơn thôi, bình thường mà."
+    },
+    {
+      "id": "daniel-morning",
+      "label": "Nói thích tập sáng nhưng toàn tập tối",
+      "kind": "contradiction",
+      "difficulty": "hard",
+      "layers": [
+        { "depth": 1, "reveal": "Tôi vẫn hay bảo mình là người tập sáng, mà nghĩ lại mấy buổi tập được đều đặn toàn là buổi tối.", "unlockIntent": "Hỏi về khoảng cách giữa điều anh nói (tập sáng) và điều anh làm (tập tối)." },
+        { "depth": 2, "reveal": "Sáng là lúc tôi 'định' tập. Tối là lúc tôi thật sự tập, vì có bạn, vì đã ngủ đủ. Nhưng lịch trong app tôi set toàn 6 giờ sáng.", "unlockIntent": "Hỏi vì sao anh vẫn đặt lịch buổi sáng." },
+        { "depth": 3, "reveal": "Tôi đặt lịch theo con người tôi muốn trở thành, chứ không phải con người tôi đang là. Rồi tự trách mình mỗi sáng bỏ tập.", "unlockIntent": "Hỏi chuyện gì sẽ khác nếu lịch đặt theo lúc anh thật sự tập." }
+      ],
+      "rationalization": "Thì ai cũng muốn tập sáng mà."
+    },
+    {
+      "id": "daniel-injury",
+      "label": "Bỏ lửng chuyện chấn thương",
+      "kind": "trailing",
+      "difficulty": "medium",
+      "layers": [
+        { "depth": 1, "reveal": "Hồi đó tôi có bị cái đầu gối… mà thôi, chuyện cũ rồi.", "unlockIntent": "Hỏi về chuyện đầu gối, chuyện cũ đó là gì." },
+        { "depth": 2, "reveal": "Năm ngoái chạy theo lịch của app, tăng quãng đường nhanh quá, đau đầu gối ba tuần. Từ đó mỗi lần mở app thấy lịch chạy là ngại.", "unlockIntent": "Hỏi điều đó thay đổi cách anh dùng app thế nào." },
+        { "depth": 3, "reveal": "Tôi không muốn tập theo lịch dành cho người bình thường nữa. Tôi cần cái gì biết tôi từng chấn thương và không ép.", "unlockIntent": "Hỏi anh đã nói với app hay huấn luyện viên nào về chấn thương chưa." }
+      ],
+      "rationalization": "Chấn thương nhỏ thôi, ai chạy chả bị."
+    }
+  ]
+}

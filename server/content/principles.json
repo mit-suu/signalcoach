@@ -1,0 +1,98 @@
+[
+  {
+    "id": "P01",
+    "name": "Hỏi về quá khứ, đừng hỏi về tương lai",
+    "summary": "Người ta đoán rất tệ về việc mình sẽ làm. Hỏi về một lần cụ thể đã xảy ra cho bạn dữ kiện thật thay vì lời hứa.",
+    "badExample": "Chị có dùng tính năng này không nếu bọn mình làm ra?",
+    "goodExample": "Lần gần nhất chị cần làm việc này, chị đã làm thế nào?",
+    "appliesTo": ["future"]
+  },
+  {
+    "id": "P02",
+    "name": "Hỏi mở trước, hỏi đóng sau",
+    "summary": "Câu hỏi có/không khép cuộc trò chuyện lại. Mở bằng câu hỏi để người ta kể, chỉ dùng câu đóng để xác nhận chi tiết.",
+    "badExample": "Chị có dùng Slack để bàn giao việc không?",
+    "goodExample": "Kể mình nghe lần bàn giao gần nhất của chị.",
+    "appliesTo": ["closed"]
+  },
+  {
+    "id": "P03",
+    "name": "Đừng dẫn dắt câu trả lời",
+    "summary": "Nếu câu hỏi gợi ý sẵn đáp án bạn muốn, người ta sẽ lịch sự đưa đúng đáp án đó. Hãy hỏi sao cho câu trả lời nào cũng dễ nói như nhau.",
+    "badExample": "Chị thấy tính năng nhắc nhở hữu ích đúng không?",
+    "goodExample": "Lần gần nhất có nhắc nhở, chuyện gì đã xảy ra?",
+    "appliesTo": ["leading"]
+  },
+  {
+    "id": "P04",
+    "name": "Mỗi lần một câu hỏi",
+    "summary": "Câu hỏi gộp hai ý khiến người trả lời chọn ý dễ hơn, và bạn không biết họ đang trả lời ý nào.",
+    "badExample": "Chị theo dõi chi tiêu thế nào và thích điều gì ở cách đó?",
+    "goodExample": "Hiện giờ chị theo dõi chi tiêu thế nào?",
+    "appliesTo": ["double"]
+  },
+  {
+    "id": "P05",
+    "name": "Xin một câu chuyện cụ thể",
+    "summary": "\"Thường thì\" mời gọi câu trả lời chung chung. \"Kể về lần gần nhất\" kéo ra chi tiết, bối cảnh và cảm xúc thật.",
+    "badExample": "Chị thường quản lý tiền thế nào?",
+    "goodExample": "Kể về lần gần nhất chị ngồi xem lại chi tiêu.",
+    "appliesTo": ["vague"]
+  },
+  {
+    "id": "P06",
+    "name": "Đào sâu bằng câu chuyện, không phải \"tại sao\" trống",
+    "summary": "Một chữ \"tại sao\" trơ trọi khiến người ta biện minh. Hỏi chuyện gì đã xảy ra trước và sau đó để thấy lý do thật.",
+    "badExample": "Tại sao chị bỏ?",
+    "goodExample": "Hôm chị quyết định thôi dùng, chuyện gì đã xảy ra?",
+    "appliesTo": ["bare_why"]
+  },
+  {
+    "id": "P07",
+    "name": "Đi theo tín hiệu cảm xúc",
+    "summary": "Khi người dùng dùng từ mạnh, thở dài hay đùa để né, đó là chỗ đáng hỏi tiếp nhất trong cả buổi.",
+    "badExample": "(chuyển sang câu tiếp theo trong kịch bản)",
+    "goodExample": "Chị nói nó như làm bài tập về nhà — kể thêm về cảm giác đó?",
+    "appliesTo": []
+  },
+  {
+    "id": "P08",
+    "name": "Dùng lại chính lời của họ",
+    "summary": "Trích lại đúng từ người dùng vừa nói cho thấy bạn đang nghe và mời họ đi sâu hơn mà không đặt chữ vào miệng họ.",
+    "badExample": "Vậy là chị thấy bất tiện?",
+    "goodExample": "\"Bỏ sau hai tuần\" — hai tuần đó diễn ra thế nào?",
+    "appliesTo": []
+  },
+  {
+    "id": "P09",
+    "name": "Hỏi tiếp khi có người khác được nhắc đến",
+    "summary": "Người khác trong câu chuyện thường là người ra quyết định, người chia sẻ công việc hoặc lý do thật đằng sau hành vi.",
+    "badExample": "Hiểu rồi. Còn chị thì sao?",
+    "goodExample": "Chị nói chồng chị lo phần này — việc đó chia ra thế nào?",
+    "appliesTo": []
+  },
+  {
+    "id": "P10",
+    "name": "Truy những chỗ mâu thuẫn",
+    "summary": "Khi điều người ta nói khác điều họ làm, đừng sửa họ — hãy hỏi về lần cụ thể để thấy hành vi thật.",
+    "badExample": "(bỏ qua mâu thuẫn)",
+    "goodExample": "Anh nói thích tập buổi sáng — lần gần nhất anh tập là lúc nào?",
+    "appliesTo": []
+  },
+  {
+    "id": "P11",
+    "name": "Nói ít, nghe nhiều",
+    "summary": "Câu hỏi dài, giải thích nhiều hay chia sẻ ý kiến của bạn lấy mất chỗ của người dùng. Hỏi ngắn rồi để im lặng làm việc.",
+    "badExample": "Bọn mình đang nghĩ làm một tính năng nhắc nhở thông minh, nó sẽ… chị thấy sao?",
+    "goodExample": "Kể tiếp đi chị.",
+    "appliesTo": ["over_talking"]
+  },
+  {
+    "id": "P12",
+    "name": "Đừng chào hàng",
+    "summary": "Khi bạn mô tả giải pháp, người ta chuyển sang khen cho lịch sự. Buổi phỏng vấn là để hiểu vấn đề, không phải để bán ý tưởng.",
+    "badExample": "App bọn mình tự động phân loại chi tiêu, chị có thích không?",
+    "goodExample": "Việc phân loại chi tiêu hiện tại chị làm thế nào?",
+    "appliesTo": []
+  }
+]

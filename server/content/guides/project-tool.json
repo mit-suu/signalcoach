@@ -1,0 +1,98 @@
+{
+  "id": "project-tool",
+  "context": "Cộng tác nhóm",
+  "title": "App quản lý dự án",
+  "goal": "Hiểu cách một agency theo dõi và bàn giao công việc — và vì sao các công cụ quản lý dự án không trụ được.",
+  "estimatedMinutes": 15,
+  "suggestedQuestions": [
+    "Kể mình nghe tuần vừa rồi team chị theo dõi công việc thế nào.",
+    "Lần bàn giao việc gần nhất diễn ra ra sao?",
+    "Công cụ gần nhất team chị thử là gì, chuyện gì đã xảy ra?",
+    "Khi một dự án trễ hạn, chị biết điều đó bằng cách nào?"
+  ],
+  "persona": {
+    "id": "priya",
+    "name": "Priya",
+    "age": 34,
+    "initial": "P",
+    "tagline": "Trưởng vận hành ở agency 40 người",
+    "background": "Trưởng vận hành ở một agency thiết kế 40 người, quản lý 12 dự án song song.",
+    "traits": ["Thẳng thắn", "Có tổ chức", "Thiếu kiên nhẫn với câu hỏi chung chung"],
+    "speakingStyle": "Chuyên nghiệp, xưng \"tôi\", trả lời ngắn gọn với câu hỏi chung chung nhưng kể chi tiết khi được hỏi về một tình huống cụ thể.",
+    "openingMessage": "Chào bạn, tôi là Priya. Tôi có khoảng hai mươi phút giữa hai cuộc họp, mình bắt đầu luôn nhé."
+  },
+  "signals": [
+    {
+      "id": "priya-spreadsheet",
+      "label": "Bảng tính ngầm",
+      "kind": "behavior",
+      "difficulty": "medium",
+      "layers": [
+        { "depth": 1, "reveal": "Chính thức thì team dùng Asana. Còn tôi có một bảng tính riêng để biết thực sự chuyện gì đang diễn ra.", "unlockIntent": "Hỏi về bảng tính riêng: nó có gì, vì sao cần nó bên cạnh tool." },
+        { "depth": 2, "reveal": "Bảng tính của tôi có ba cột mà Asana không có: ai đang quá tải, dự án nào khách đang khó chịu, và deadline 'thật' so với deadline ghi trong tool.", "unlockIntent": "Hỏi vì sao những thứ đó không nằm trong tool, ai cập nhật bảng tính." },
+        { "depth": 3, "reveal": "Tool chỉ ghi điều team muốn sếp thấy. Sự thật nằm trong bảng tính của tôi, và tôi là người duy nhất cập nhật nó, mỗi tối.", "unlockIntent": "Hỏi chuyện gì xảy ra nếu chị không cập nhật một tối." }
+      ],
+      "rationalization": "Ai làm vận hành cũng có một bảng tính riêng thôi."
+    },
+    {
+      "id": "priya-clients",
+      "label": "Khách hàng cùng theo dõi",
+      "kind": "behavior",
+      "difficulty": "hard",
+      "layers": [
+        { "depth": 1, "reveal": "Một số khách hàng lớn cũng được xem board của tụi tôi, nên mọi thứ trên đó phải… gọn.", "unlockIntent": "Hỏi việc khách xem được board ảnh hưởng thế nào tới cách team dùng nó." },
+        { "depth": 2, "reveal": "Khi khách xem được, team không dám ghi comment thật. 'Khách đổi yêu cầu lần thứ tư' thì không ai dám viết. Nên nội bộ chuyển hết sang Slack.", "unlockIntent": "Hỏi về một lần cụ thể team phải tránh ghi gì đó." },
+        { "depth": 3, "reveal": "Tool lẽ ra là nơi làm việc chung, giờ thành bộ mặt trưng cho khách. Công việc thật trôi về Slack và bảng tính của tôi.", "unlockIntent": "Hỏi chị đã nghĩ tới việc tách view cho khách chưa." }
+      ],
+      "rationalization": "Khách trả tiền thì họ có quyền xem."
+    },
+    {
+      "id": "priya-tool-churn",
+      "label": "Thử công cụ rồi quay lại cũ",
+      "kind": "trailing",
+      "difficulty": "easy",
+      "layers": [
+        { "depth": 1, "reveal": "Hai năm nay tụi tôi thử bốn công cụ rồi quay lại cái cũ… mà thôi, chuyện đó dài.", "unlockIntent": "Hỏi về lần chuyển gần nhất, vì sao quay lại." },
+        { "depth": 2, "reveal": "Lần gần nhất là ClickUp, được sáu tuần. Tuần thứ ba vẫn có hai designer cập nhật ở Asana cũ, thế là có hai nguồn sự thật, tôi phải quay lại.", "unlockIntent": "Hỏi giai đoạn chuyển đổi đó khó ở đâu." },
+        { "depth": 3, "reveal": "Cái giết chết mỗi lần chuyển không phải tính năng, mà là ba tuần chạy song song hai tool. Không ai chịu nổi giai đoạn đó, kể cả tôi.", "unlockIntent": "Hỏi điều gì sẽ khiến lần chuyển tiếp theo khác đi." }
+      ],
+      "rationalization": "Tool nào cũng na ná nhau thôi."
+    },
+    {
+      "id": "priya-slack-handoff",
+      "label": "Bàn giao qua Slack bị thất lạc",
+      "kind": "emotion",
+      "difficulty": "medium",
+      "layers": [
+        { "depth": 1, "reveal": "Tuần trước có một bàn giao qua Slack bị trôi mất, tôi thật sự phát cáu.", "unlockIntent": "Hỏi chuyện gì đã xảy ra trong lần bàn giao đó." },
+        { "depth": 2, "reveal": "Designer gửi file final trong thread lúc 11 giờ đêm, dev không thấy. Hôm sau khách hỏi, hai bên đổ lỗi cho nhau. Tôi mất cả buổi sáng để tìm lại tin nhắn.", "unlockIntent": "Hỏi điều gì trong chuyện đó khiến chị cáu nhất." },
+        { "depth": 3, "reveal": "Điều làm tôi cáu không phải lỗi của ai, mà là tôi biết nó sẽ lặp lại tuần sau. Bàn giao không có chỗ 'chính thức', nên lần nào cũng dựa vào may mắn.", "unlockIntent": "Hỏi team đã thử quy ước bàn giao nào chưa." }
+      ],
+      "rationalization": "Slack thì tin nhắn trôi là chuyện thường."
+    },
+    {
+      "id": "priya-friday-report",
+      "label": "Sếp chỉ đọc báo cáo thứ Sáu",
+      "kind": "contradiction",
+      "difficulty": "hard",
+      "layers": [
+        { "depth": 1, "reveal": "Sếp tôi nói muốn theo dõi theo thời gian thực, nhưng thật ra ông ấy chỉ đọc bản báo cáo tôi gửi vào thứ Sáu.", "unlockIntent": "Hỏi về khoảng cách giữa điều sếp nói và điều sếp làm." },
+        { "depth": 2, "reveal": "Ông ấy có tài khoản trên tool, đăng nhập chắc hai lần một tháng. Thứ Sáu tôi gửi một trang PDF, ông ấy trả lời trong 10 phút.", "unlockIntent": "Hỏi chị làm báo cáo đó thế nào, mất bao lâu." },
+        { "depth": 3, "reveal": "Nên tôi làm tool cho team, làm báo cáo cho sếp, làm bảng tính cho tôi. Ba phiên bản của cùng một sự thật, và tôi là người dịch giữa chúng.", "unlockIntent": "Hỏi điều gì sẽ xảy ra nếu chỉ còn một phiên bản." }
+      ],
+      "rationalization": "Sếp bận thì đọc tóm tắt là đúng rồi."
+    },
+    {
+      "id": "priya-new-hire",
+      "label": "Nhân viên mới mất cả tuần đầu",
+      "kind": "behavior",
+      "difficulty": "easy",
+      "layers": [
+        { "depth": 1, "reveal": "Nhân viên mới mất cả tuần đầu chỉ để hiểu dự án nào đang ở đâu.", "unlockIntent": "Hỏi tuần đầu đó diễn ra thế nào, họ hỏi gì." },
+        { "depth": 2, "reveal": "Bạn mới nhất hỏi tôi 14 lần trong hai ngày 'cái này tìm ở đâu'. Tôi đếm đấy. Mỗi lần là một kênh khác: Asana, Drive, Slack, email.", "unlockIntent": "Hỏi điều đó nói lên gì về cách thông tin được tổ chức." },
+        { "depth": 3, "reveal": "Tôi nhận ra tôi là tài liệu onboarding sống. Nếu tôi nghỉ hai tuần, không ai biết dự án nào đang ở đâu.", "unlockIntent": "Hỏi chị đã từng nghỉ dài chưa, chuyện gì xảy ra." }
+      ],
+      "rationalization": "Agency nào người mới cũng cần thời gian thôi."
+    }
+  ]
+}
