@@ -152,6 +152,8 @@ export interface SessionSummary {
   score: number | null;
   counts: Scorecard["counts"] | null;
   focus: ScorecardFocus[];
+  /** Judge-labelled question mistakes on the user's turns, per type (`good` never appears). */
+  mistakes: Partial<Record<QuestionType, number>>;
 }
 
 export interface PublicUser {

@@ -5,7 +5,7 @@ import { runTurn } from "../agent/turnRunner";
 import { closeSignals } from "../agent/stateMachine";
 import { generateScorecard } from "../agent/review";
 import { openSse } from "../utils/sse";
-import { MIN_QUESTIONS_TO_SCORE } from "../types/domain";
+import { MIN_QUESTIONS_TO_SCORE, QUESTION_TYPES, type QuestionType } from "../types/domain";
 import { logger } from "../config/logger";
 import type { SessionDoc } from "../models/session.model";
 import type { Guide } from "../types/content";
@@ -65,6 +65,17 @@ export async function create(req: Request, res: Response) {
   res.status(201).json({ session: toSessionView(session) });
 }
 
+/** Question mistakes per type (judge labels on user turns, `good` and unlabelled excluded). */
+function countMistakes(turns: sessions.SessionListRow["turns"]): Partial<Record<QuestionType, number>> {
+  const out: Partial<Record<QuestionType, number>> = {};
+  for (const t of turns ?? []) {
+    const q = t.questionType;
+    if (t.role !== "user" || !q || q === "good" || !QUESTION_TYPES.includes(q)) continue;
+    out[q] = (out[q] ?? 0) + 1;
+  }
+  return out;
+}
+
 export async function list(req: Request, res: Response) {
   const rows = await sessions.listSessions(userId(req));
   res.json({
@@ -82,6 +93,7 @@ export async function list(req: Request, res: Response) {
       score: s.score ?? null,
       counts: s.scorecard?.counts ?? null,
       focus: s.scorecard?.focus ?? [],
+      mistakes: countMistakes(s.turns),
     })),
   });
 }

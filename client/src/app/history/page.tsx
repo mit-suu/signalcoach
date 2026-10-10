@@ -7,11 +7,10 @@ import type { SessionSummary } from "@/types/api";
 import { ArrowRight } from "@/components/BrandMark";
 import { Dialog } from "@/components/Dialog";
 import { SignalDots } from "@/components/SignalDots";
+import { ProgressChart } from "@/components/ProgressChart";
 import { STATUS_TEXT, fmtDate, pct } from "@/lib/labels";
 
-const CHART_N = 6;
-
-/** S10/S11 — practice history (FR-11): score trend, current focus, sessions table, deletes with confirmation. */
+/** S10/S11 — practice history (FR-11): progress chart (score + question mistakes), current focus, sessions table, deletes with confirmation. */
 export default function HistoryPage() {
   const [rows, setRows] = useState<SessionSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +30,6 @@ export default function HistoryPage() {
   }, [toast]);
 
   const ended = useMemo(() => (rows ?? []).filter((r) => r.status !== "active"), [rows]);
-  const chart = useMemo(() => ended.slice(0, CHART_N).reverse(), [ended]);
   const scored = ended.filter((r) => r.score !== null);
   // Focus tracking: the latest scored session's first focus, and whether a later session on a new guide beat the earlier score.
   const latestFocus = ended.find((r) => r.focus.length)?.focus[0] ?? null;
@@ -84,23 +82,7 @@ export default function HistoryPage() {
     <>
       <div className="section grid-12 hist-top">
         <div style={{ gridColumn: "1 / span 7" }}>
-          <div className="sc-row-head">
-            <h2 style={{ margin: 0 }}>Khả năng bắt tín hiệu</h2>
-            <span className="muted" style={{ fontSize: 13 }}>{chart.length === 1 ? "1 buổi" : `${chart.length} buổi gần nhất`}</span>
-          </div>
-          <div className="bars" role="img" aria-label="Điểm các buổi gần nhất">
-            {chart.map((r) => {
-              const p = pct(r.score);
-              return (
-                <Link key={r.id} href={`/session/${r.id}/scorecard`} className="bar-col" title={`${r.guideTitle} · ${fmtDate(r.startedAt)}`}>
-                  <span className="bar-val">{p === null ? "—" : p}</span>
-                  <span className="bar" style={{ height: `${Math.max(4, p ?? 4)}%` }} data-none={p === null || undefined} />
-                  <span className="bar-label muted">{r.guideTitle.replace(/^App /, "")}</span>
-                </Link>
-              );
-            })}
-          </div>
-          {chart.length === 1 && <div className="muted" style={{ fontSize: 13 }}>Thêm một buổi để thấy tiến bộ.</div>}
+          <ProgressChart sessions={ended} />
         </div>
         <div style={{ gridColumn: "9 / span 4" }} className="focus-box">
           <h6 className="muted" style={{ margin: 0 }}>Đang tập trung</h6>
@@ -122,6 +104,7 @@ export default function HistoryPage() {
           <h3 style={{ margin: 0 }}>Các buổi</h3>
           <button className="btn btn-ghost" onClick={() => setDeleteAll(true)}>Xoá lịch sử</button>
         </div>
+        <div className="hist-table-wrap">
         <table className="table hist-table">
           <thead>
             <tr>
@@ -170,6 +153,7 @@ export default function HistoryPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {toast && <div className="toast">{toast}</div>}

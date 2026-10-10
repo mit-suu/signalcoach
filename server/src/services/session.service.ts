@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 import { SessionModel, type SessionDoc } from "../models/session.model";
 import { resolveGuide } from "./guide.service";
 import { notFound, conflict } from "../utils/errors";
+import type { QuestionType, TurnRole } from "../types/domain";
 
 const oid = (id: string) => new Types.ObjectId(id);
 
@@ -40,6 +41,8 @@ export interface SessionListRow {
   score: number | null;
   guide: { title: string; context: string; persona: { name: string; initial: string } };
   scorecard: { focus?: { skill: string; principleId: string | null }[]; counts?: Record<string, number> } | null;
+  /** Only the judge label is projected — never the turn text. */
+  turns?: { role: TurnRole; questionType?: QuestionType | null }[];
 }
 
 export async function listSessions(userId: string): Promise<SessionListRow[]> {
@@ -58,6 +61,8 @@ export async function listSessions(userId: string): Promise<SessionListRow[]> {
       "guide.persona.initial": 1,
       "scorecard.focus": 1,
       "scorecard.counts": 1,
+      "turns.role": 1,
+      "turns.questionType": 1,
     })
     .lean<SessionListRow[]>();
 }

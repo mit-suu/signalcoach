@@ -181,6 +181,15 @@ describe("full session → scorecard (agent pipeline on the mock model)", () => 
     expect(again.body.session.scorecard.generatedAt).toBe(s.scorecard.generatedAt);
   });
 
+  it("lists the session with per-type question mistakes and no raw turns", async () => {
+    const list = await agent.get("/api/sessions").expect(200);
+    const row = list.body.sessions.find((x: { id: string }) => x.id === sessionId);
+    expect(row).toBeDefined();
+    expect(row.turns).toBeUndefined();
+    expect(row.mistakes.leading).toBeGreaterThanOrEqual(1);
+    expect(row.mistakes.good).toBeUndefined();
+  });
+
   it("an early end is incomplete: no score, not_surfaced signals, but feedback", async () => {
     const res = await agent.post("/api/sessions").send({ guideId: "fitness-app" }).expect(201);
     const id = res.body.session.id;
