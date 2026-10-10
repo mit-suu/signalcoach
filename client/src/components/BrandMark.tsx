@@ -1,9 +1,15 @@
-export function BrandMark({ size = 22 }: { size?: number }) {
+export function BrandMark({ size = 32 }: { size?: number }) {
+  // Video có nền trắng; multiply làm nền trắng "tan" vào nền #f3f2f2 của trang.
   return (
-    <svg width={size} height={size} viewBox="0 0 22 22" aria-hidden>
-      <rect x="1" y="1" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" />
-      <rect x="12" y="4" width="6" height="6" fill="var(--color-accent)" />
-    </svg>
+    <video
+      src="/logo.mp4"
+      autoPlay
+      muted
+      loop
+      playsInline
+      aria-hidden
+      style={{ height: size, width: "auto", mixBlendMode: "multiply" }}
+    />
   );
 }
 

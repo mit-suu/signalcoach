@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { Archivo } from "next/font/google";
 import { AuthProvider } from "@/components/AuthProvider";
+import { Footer } from "@/components/Footer";
 import { Nav } from "@/components/Nav";
 import "@/styles/modernist.css";
 import "./globals.css";
@@ -23,10 +23,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="vi" className={archivo.variable}>
       <body>
         <AuthProvider>
-          <Suspense fallback={<nav className="nav app-nav" />}>
-            <Nav />
-          </Suspense>
+          <Nav />
           <main className="app-main">{children}</main>
+          <Footer />
         </AuthProvider>
       </body>
     </html>

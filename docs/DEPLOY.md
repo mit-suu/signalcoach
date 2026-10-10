@@ -62,7 +62,8 @@ of what's wrong — check **Log stream** if the app won't start.
 ```powershell
 cd server
 npm ci; npm run build; npm prune --omit=dev
-Compress-Archive -Force -Path dist, content, node_modules, package.json, package-lock.json -DestinationPath ..\api.zip
+# not Compress-Archive: on Windows PowerShell 5.1 it writes "\" separators, which break on Linux
+tar.exe -a -cf ..\api.zip dist content node_modules package.json package-lock.json
 az webapp deploy --resource-group <rg> --name <app> --src-path ..\api.zip --type zip
 npm ci   # restore dev dependencies for local work
 ```
