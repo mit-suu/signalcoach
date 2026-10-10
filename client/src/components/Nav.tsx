@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
@@ -14,7 +15,12 @@ const LINKS = [
 export function Nav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
+  // Nav sits in Suspense, so it can hydrate after AuthProvider has already resolved /me.
+  // Render the server's "loading" output until hydrated, or the auth links mismatch.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  const loading = authLoading || !hydrated;
 
   return (
     <nav className="nav app-nav">
