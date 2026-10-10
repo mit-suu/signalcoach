@@ -39,3 +39,7 @@ export const UNSURE_CONFIDENCE = 0.6;
 export const PLANT_DEADLINE_QUESTIONS = 8;
 /** The persona only proposes ending after this many questions, and only once all signals are out. */
 export const PROPOSE_END_MIN_QUESTIONS = 8;
+
+/** Role markers on transcript-analysis prompt lines (`#i [ROLE] Name: text`); the mock model reads them. */
+export const TRANSCRIPT_ROLE_ME = "NGƯỜI HỎI";
+export const TRANSCRIPT_ROLE_OTHER = "NGƯỜI ĐƯỢC PHỎNG VẤN";

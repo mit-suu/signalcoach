@@ -177,3 +177,65 @@ export type TurnEvent =
   | { event: "delta"; data: { text: string } }
   | { event: "done"; data: { turn: Turn; questionCount: number; signalsSurfaced: number; signalCount: number; endProposed: boolean } }
   | { event: "error"; data: { code: string; message: string; retryable: boolean } };
+
+/** Analysis of a real interview transcript (server/src/types/transcript.ts). Counts only — no score. */
+export interface TranscriptTurn {
+  index: number;
+  speaker: string;
+  text: string;
+}
+
+export type TranscriptSignalStatus = "caught" | "partial" | "missed";
+
+export interface TranscriptSignal {
+  turnIndex: number;
+  quote: string;
+  kind: SignalKind;
+  label: string;
+  status: TranscriptSignalStatus;
+  followUpTurn: number | null;
+  followUpQuote: string | null;
+  suggestedQuestion: string | null;
+  note: string | null;
+}
+
+export interface TranscriptCounts {
+  caught: number;
+  partial: number;
+  missed: number;
+  total: number;
+}
+
+export interface TranscriptAnalysis {
+  id: string;
+  title: string;
+  me: string;
+  createdAt: string;
+  turns: TranscriptTurn[];
+  result: {
+    generatedAt: string;
+    counts: TranscriptCounts;
+    signals: TranscriptSignal[];
+    feedback: ScorecardFeedback[];
+    summary: string;
+  };
+  selfCheckLog: SelfCheckEntry[];
+}
+
+export interface TranscriptSummary {
+  id: string;
+  title: string;
+  me: string;
+  createdAt: string;
+  turnCount: number;
+  counts: TranscriptCounts;
+  feedbackCount: number;
+}
+
+export interface SampleTranscript {
+  id: string;
+  title: string;
+  description: string;
+  me: string;
+  text: string;
+}

@@ -1,0 +1,36 @@
+{
+  "id": "team-duc",
+  "title": "Giao việc trong nhóm · phỏng vấn Đức",
+  "description": "Trưởng nhóm sáu người, dùng Trello nhưng vẫn giao việc qua Zalo. 14 lượt.",
+  "me": "Phương",
+  "lines": [
+    "Phương: Chào anh Đức. Anh kể em nghe tuần vừa rồi nhóm anh giao việc cho nhau như thế nào?",
+    "Đức: Bọn anh dùng Trello, mỗi sáng thứ hai họp nhanh rồi kéo thẻ. Thật ra một nửa việc vẫn giao qua Zalo.",
+    "Phương: Anh thấy Trello dễ dùng đúng không?",
+    "Đức: Ừ dễ. Mấy bạn mới thì hay quên cập nhật thẻ, sếp anh hỏi tiến độ là anh phải nhắn từng người…",
+    "Phương: Anh từng dùng tính năng báo cáo của Trello không?",
+    "Đức: Có thử rồi, không hợp. Lần trước gửi báo cáo tự động, sếp anh đọc xong gọi anh lên hỏi sao số liệu sai, anh xấu hổ lắm.",
+    "Phương: Hôm sếp gọi anh lên vì số liệu sai, chuyện gì đã xảy ra sau đó?",
+    "Đức: Sau đó anh tự làm lại bằng Excel, tối nào cũng ngồi tới mười một giờ. Vợ anh kêu suốt.",
+    "Phương: Vì sao vậy anh?",
+    "Đức: Thì… quen rồi.",
+    "Phương: Anh với các bạn trong nhóm có hay họp không và họp bao lâu?",
+    "Đức: Mỗi sáng thứ hai thôi, mười lăm phút.",
+    "Phương: Cảm ơn anh, em xin phép dừng ở đây.",
+    "Đức: Ừ em."
+  ],
+  "expected": {
+    "signals": [
+      { "turn": 1, "quote": "Thật ra một nửa việc vẫn giao qua Zalo.", "status": "missed" },
+      { "turn": 3, "quote": "sếp anh hỏi tiến độ là anh phải nhắn từng người…", "status": "missed" },
+      { "turn": 5, "quote": "anh xấu hổ lắm", "status": "caught" },
+      { "turn": 7, "quote": "Vợ anh kêu suốt.", "status": "missed" }
+    ],
+    "mistakes": [
+      { "turn": 2, "type": "leading" },
+      { "turn": 4, "type": "closed" },
+      { "turn": 8, "type": "bare_why" },
+      { "turn": 10, "type": "double" }
+    ]
+  }
+}

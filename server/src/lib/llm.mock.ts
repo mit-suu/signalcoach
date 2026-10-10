@@ -1,4 +1,5 @@
 import type { ChatMessage } from "./llm";
+import { FOLLOW_UP_WINDOW, TRANSCRIPT_ROLE_ME } from "../types/domain";
 
 /**
  * Offline stand-in for the model, used by tests and for UI work without a key.
@@ -104,7 +105,70 @@ export function mockCompleteJson(messages: ChatMessage[]): string {
     });
   }
 
+  if (task === "analyze_transcript") return mockAnalyzeTranscript(user);
+
   return "{}";
+}
+
+// ── analyze_transcript: cue-word heuristics over the `#i [ROLE] Name: text` lines ──────────────
+
+/** Checked in order; the first kind whose cue appears in a sentence wins. */
+const CUES: [string, RegExp][] = [
+  ["emotion", /(^| )(bực|chán|ngại|sợ|mệt|tức|nản|xấu hổ|khó chịu|áp lực|lo lắng)( |$)/],
+  ["contradiction", /(^| )(thật ra|thực ra|nhưng mà)( |$)/],
+  ["behavior", /(^| )(vợ|chồng|sếp|mẹ|bố|con|đồng nghiệp)( |$)/],
+];
+const mockNorm = (s: string) => s.toLowerCase().replace(/[“”"'’`.,;:!?()\-–—]/g, " ").replace(/\s+/g, " ").trim();
+const bigrams = (s: string) => {
+  const w = mockNorm(s.replace(/…/g, " ")).split(" ").filter(Boolean);
+  return new Set(w.slice(1).map((x, i) => `${w[i]} ${x}`));
+};
+
+function mockAnalyzeTranscript(user: string): string {
+  const turns = user
+    .split("\n")
+    .map((l) => /^#(\d+) \[([^\]]+)\] [^:]+: (.*)$/.exec(l))
+    .filter((m): m is RegExpExecArray => Boolean(m))
+    .map((m) => ({ index: Number(m[1]), mine: m[2] === TRANSCRIPT_ROLE_ME, text: m[3]! }));
+  const mine = turns.filter((t) => t.mine);
+
+  const signals = [];
+  for (const t of turns) {
+    if (t.mine) continue;
+    const sentences = t.text.split(/(?<=[.!?…])\s+/).map((s) => s.trim()).filter((s) => s.length >= 15);
+    let found: { quote: string; kind: string } | null = null;
+    for (const s of sentences) {
+      const n = mockNorm(s);
+      const kind = s.includes("…") ? "trailing" : CUES.find(([, re]) => re.test(n))?.[0];
+      if (kind) {
+        found = { quote: s, kind };
+        break;
+      }
+    }
+    if (!found) continue;
+    const window = mine.filter((q) => q.index > t.index).slice(0, FOLLOW_UP_WINDOW);
+    const qb = bigrams(found.quote);
+    const hit = window.find((q) => [...bigrams(q.text)].some((b) => qb.has(b)));
+    const status = !hit ? "missed" : heuristicQuestionType(hit.text) === "good" ? "caught" : "partial";
+    signals.push({
+      turnIndex: t.index,
+      quote: found.quote,
+      kind: found.kind,
+      label: found.quote.slice(0, 40),
+      status,
+      followUpTurn: hit?.index ?? null,
+      followUpQuote: hit?.text ?? "",
+      suggestedQuestion: status === "caught" ? "" : `Lúc nãy bạn nhắc "${found.quote.replace(/[….]+$/, "")}" — kể mình nghe lần gần nhất chuyện đó xảy ra?`,
+      note: "mock: chi tiết đáng hỏi sâu",
+    });
+  }
+
+  const feedback = mine
+    .map((q) => ({ q, type: heuristicQuestionType(q.text) }))
+    .filter(({ type }) => type !== "good")
+    .map(({ q, type }) => ({ turnIndex: q.index, type, rewrite: "Kể mình nghe lần gần nhất chuyện đó xảy ra như thế nào?", impact: 2 }));
+
+  return JSON.stringify({ signals, feedback, summary: "mock analysis" });
 }
 
 const CANNED = [

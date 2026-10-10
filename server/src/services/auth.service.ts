@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { Types } from "mongoose";
 import { UserModel } from "../models/user.model";
 import { SessionModel } from "../models/session.model";
+import { moveAnalyses } from "./transcript.service";
 import type { AuthClaims } from "./token.service";
 import { AppError, conflict } from "../utils/errors";
 
@@ -41,8 +42,8 @@ export async function register(
 }
 
 /**
- * Login to an existing account. Sessions practised anonymously in this browser
- * are moved onto the account so nothing is lost.
+ * Login to an existing account. Sessions practised and transcripts analysed anonymously in this
+ * browser are moved onto the account so nothing is lost.
  */
 export async function login(
   input: { email: string; password: string },
@@ -55,6 +56,7 @@ export async function login(
 
   if (current?.anon && current.sub !== user.id) {
     await SessionModel.updateMany({ userId: new Types.ObjectId(current.sub) }, { $set: { userId: user._id } });
+    await moveAnalyses(current.sub, user._id);
   }
   return toPublicUser(user);
 }

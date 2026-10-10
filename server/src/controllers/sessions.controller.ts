@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { userId } from "../middleware/auth";
 import * as sessions from "../services/session.service";
+import { deleteAllAnalyses } from "../services/transcript.service";
 import { runTurn } from "../agent/turnRunner";
 import { closeSignals } from "../agent/stateMachine";
 import { generateScorecard } from "../agent/review";
@@ -108,9 +109,11 @@ export async function remove(req: IdReq, res: Response) {
   res.status(204).end();
 }
 
+/** DELETE /sessions — "Xoá lịch sử": every session and every transcript analysis of this identity. */
 export async function removeAll(req: Request, res: Response) {
   const deleted = await sessions.deleteAllSessions(userId(req));
-  res.json({ deleted });
+  const analysesDeleted = await deleteAllAnalyses(userId(req));
+  res.json({ deleted, analysesDeleted });
 }
 
 /** POST /sessions/:id/turns — Server-Sent Events: accepted → delta* → done | error */

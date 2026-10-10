@@ -30,3 +30,13 @@ export const GenerateGuideBody = z.object({
   goal: z.string().trim().max(500).optional(),
   notes: z.string().trim().max(1000).optional(),
 });
+
+/** Max transcript length (client blocks above this too — keep client/src/lib/transcript.ts in step). */
+export const TRANSCRIPT_MAX_CHARS = 30_000;
+
+/** A real interview transcript to analyse: `Tên: nội dung` lines, plus which speaker is "me". */
+export const AnalyzeTranscriptBody = z.object({
+  text: z.string().trim().min(1, "Bản ghi trống").max(TRANSCRIPT_MAX_CHARS, `Bản ghi tối đa ${TRANSCRIPT_MAX_CHARS} ký tự`),
+  me: z.string().trim().min(1).max(64),
+  title: z.string().trim().max(120).optional(),
+});

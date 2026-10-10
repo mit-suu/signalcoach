@@ -62,3 +62,21 @@ export type Signal = z.infer<typeof SignalSchema>;
 export type Persona = z.infer<typeof PersonaSchema>;
 export type Guide = z.infer<typeof GuideSchema>;
 export type Principle = z.infer<typeof PrincipleSchema>;
+
+/**
+ * Built-in sample transcripts ("Thử với bản ghi mẫu"). `expected` holds the known answers — the
+ * signals a good analysis should find and the interviewer turns that are mistakes — used by tests
+ * and never sent to the browser or the model.
+ */
+export const SampleTranscriptSchema = z.object({
+  id: z.string().regex(/^[a-z0-9-]+$/),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  me: z.string().min(1),
+  lines: z.array(z.string().min(1)).min(4),
+  expected: z.object({
+    signals: z.array(z.object({ turn: z.number().int().min(0), quote: z.string().min(1), status: z.enum(["caught", "partial", "missed"]) })).min(1),
+    mistakes: z.array(z.object({ turn: z.number().int().min(0), type: z.enum(QUESTION_TYPES).exclude(["good"]) })),
+  }),
+});
+export type SampleTranscript = z.infer<typeof SampleTranscriptSchema>;

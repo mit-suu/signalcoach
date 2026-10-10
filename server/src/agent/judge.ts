@@ -57,6 +57,20 @@ const JUDGE_JSON_SCHEMA = {
   required: ["questionType", "breakAttempt", "offTopic", "followUp", "plantCandidate", "notes"],
 };
 
+/** Question-type taxonomy, shared by the judge and the transcript analyzer prompts. */
+export const QUESTION_TYPE_GUIDE = [
+  "Phân loại câu hỏi (questionType):",
+  "- good: câu mở, hỏi về chuyện đã xảy ra, đào sâu điều persona vừa nói, hoặc xác nhận chi tiết một cách trung lập.",
+  "- leading: gợi sẵn đáp án mong muốn ('…đúng không?', 'chắc là … nhỉ?').",
+  "- closed: chỉ trả lời được có/không trong khi cần kể chuyện.",
+  "- vague: chung chung, 'thường thì', không gắn với tình huống cụ thể.",
+  "- double: gộp hai câu hỏi trở lên trong một lượt.",
+  "- future: hỏi giả định tương lai ('sẽ dùng không nếu…').",
+  "- bare_why: chỉ 'tại sao?' trơ trọi, ép người ta biện minh.",
+  "- over_talking: người hỏi nói dài, tự kể, tự giải thích hoặc chào hàng nhiều hơn hỏi.",
+  "Khi một câu vừa gộp hai ý vừa có lỗi khác, chọn double.",
+].join("\n");
+
 const RECENT_TURNS = 10;
 
 export function buildJudgeMessages(session: SessionDoc, question: string): ChatMessage[] {
@@ -72,16 +86,7 @@ export function buildJudgeMessages(session: SessionDoc, question: string): ChatM
     "TASK=judge",
     "Bạn là giám khảo kỹ năng phỏng vấn người dùng, chấm một buổi luyện tập. Người luyện (interviewer) đang phỏng vấn persona AI. Bạn KHÔNG trả lời thay persona; bạn chỉ phân tích câu hỏi mới nhất và trả về JSON.",
     "",
-    "Phân loại câu hỏi (questionType):",
-    "- good: câu mở, hỏi về chuyện đã xảy ra, đào sâu điều persona vừa nói, hoặc xác nhận chi tiết một cách trung lập.",
-    "- leading: gợi sẵn đáp án mong muốn ('…đúng không?', 'chắc là … nhỉ?').",
-    "- closed: chỉ trả lời được có/không trong khi cần kể chuyện.",
-    "- vague: chung chung, 'thường thì', không gắn với tình huống cụ thể.",
-    "- double: gộp hai câu hỏi trở lên trong một lượt.",
-    "- future: hỏi giả định tương lai ('sẽ dùng không nếu…').",
-    "- bare_why: chỉ 'tại sao?' trơ trọi, ép người ta biện minh.",
-    "- over_talking: người hỏi nói dài, tự kể, tự giải thích hoặc chào hàng nhiều hơn hỏi.",
-    "Khi một câu vừa gộp hai ý vừa có lỗi khác, chọn double.",
+    QUESTION_TYPE_GUIDE,
     "",
     "followUp: xét câu hỏi có đào sâu một tín hiệu đang mở (OPEN) không. Hiểu theo ý, không theo từ khoá.",
     "- caught: hỏi thẳng vào chi tiết đó, mời persona kể thêm (confidence cao).",

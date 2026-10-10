@@ -8,6 +8,7 @@ import { BrandMark } from "./BrandMark";
 
 const LINKS = [
   { href: "/", label: "Luyện tập", match: (p: string) => p === "/" || p.startsWith("/guides") },
+  { href: "/transcripts/new", label: "Phân tích bản ghi", match: (p: string) => p.startsWith("/transcripts") },
   { href: "/history", label: "Lịch sử", match: (p: string) => p.startsWith("/history") || p.startsWith("/session") },
   { href: "/principles", label: "Nguyên tắc", match: (p: string) => p.startsWith("/principles") },
 ];

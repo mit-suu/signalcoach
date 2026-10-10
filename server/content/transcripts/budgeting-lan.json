@@ -1,0 +1,39 @@
+{
+  "id": "budgeting-lan",
+  "title": "Ghi chép chi tiêu · phỏng vấn Lan",
+  "description": "Nhân viên văn phòng dùng app ghi chi tiêu được năm tháng. 16 lượt.",
+  "me": "Tuấn",
+  "lines": [
+    "Tuấn: Chào chị Lan, cảm ơn chị đã dành thời gian hôm nay. Chị kể mình nghe hiện giờ chị quản lý chi tiêu trong nhà như thế nào?",
+    "Lan: Thì mình ghi vào app trên điện thoại, mỗi tối trước khi ngủ. Hồi đầu ghi đều lắm, giờ thì… cũng tuỳ hôm.",
+    "Tuấn: Chị dùng app đó được bao lâu rồi?",
+    "Lan: Khoảng năm tháng rồi. Chồng mình cài cho, anh ấy mê mấy cái app này lắm.",
+    "Tuấn: Chị thấy app đó tiện đúng không?",
+    "Lan: Ừ tiện chứ. Mà tháng trước mình bực ghê, cuối tháng cộng lại thấy lệch gần hai triệu so với tài khoản ngân hàng.",
+    "Tuấn: Lệch gần hai triệu lúc đó chị bực thế nào, chị kể mình nghe chuyện hôm đó với?",
+    "Lan: Hôm đó mình ngồi soát lại từng khoản, hoá ra mấy lần đi chợ mình quên ghi. Thật ra mình cũng ngại mở app ra lắm, nó hỏi nhiều thứ quá.",
+    "Tuấn: Nếu app có thêm tính năng quét hoá đơn thì chị sẽ dùng không?",
+    "Lan: Chắc là có, nghe cũng hay.",
+    "Tuấn: Chị có hay so sánh với bạn bè về chuyện chi tiêu không và chị thường tiết kiệm được bao nhiêu?",
+    "Lan: Cũng không hẳn. Mẹ mình thì ngày xưa ghi sổ tay, giờ vẫn ghi… mình thì không kiên nhẫn được như mẹ.",
+    "Tuấn: Tại sao?",
+    "Lan: Thì… mình bận thôi.",
+    "Tuấn: Cảm ơn chị, buổi nói chuyện hôm nay rất hữu ích với mình.",
+    "Lan: Không có gì, chúc bạn làm tốt nhé."
+  ],
+  "expected": {
+    "signals": [
+      { "turn": 1, "quote": "Hồi đầu ghi đều lắm, giờ thì…", "status": "missed" },
+      { "turn": 3, "quote": "Chồng mình cài cho, anh ấy mê mấy cái app này lắm.", "status": "missed" },
+      { "turn": 5, "quote": "tháng trước mình bực ghê", "status": "caught" },
+      { "turn": 7, "quote": "Thật ra mình cũng ngại mở app ra lắm, nó hỏi nhiều thứ quá.", "status": "missed" },
+      { "turn": 11, "quote": "Mẹ mình thì ngày xưa ghi sổ tay, giờ vẫn ghi…", "status": "missed" }
+    ],
+    "mistakes": [
+      { "turn": 4, "type": "leading" },
+      { "turn": 8, "type": "future" },
+      { "turn": 10, "type": "double" },
+      { "turn": 12, "type": "bare_why" }
+    ]
+  }
+}

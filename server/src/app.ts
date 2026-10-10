@@ -20,6 +20,8 @@ export function createApp() {
     app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
   }
   app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === "/api/health" } }));
+  // Transcripts (≤ 30 000 chars of Vietnamese, up to 3 bytes each) need a larger body than the rest.
+  app.use("/api/transcripts", express.json({ limit: "256kb" }));
   app.use(express.json({ limit: "100kb" }));
   app.use(cookieParser());
 

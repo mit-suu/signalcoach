@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { identify } from "../middleware/auth";
 import { validate } from "../middleware/validate";
-import { CreateSessionBody, GenerateGuideBody, IdParam, LoginBody, RegisterBody, TurnBody } from "../schemas/api.schemas";
+import { AnalyzeTranscriptBody, CreateSessionBody, GenerateGuideBody, IdParam, LoginBody, RegisterBody, TurnBody } from "../schemas/api.schemas";
 import * as auth from "../controllers/auth.controller";
 import * as guides from "../controllers/guides.controller";
 import * as sessions from "../controllers/sessions.controller";
+import * as transcripts from "../controllers/transcripts.controller";
 import { health } from "../controllers/health.controller";
 
 const authRoutes = Router()
@@ -33,9 +34,19 @@ const sessionRoutes = Router()
   .post("/:id/end", validate({ params: IdParam }), sessions.end)
   .post("/:id/scorecard", validate({ params: IdParam }), sessions.scorecard);
 
+// Analyses of real interview transcripts — owned like sessions, anonymous visitors included.
+const transcriptRoutes = Router()
+  .use(identify)
+  .get("/samples", transcripts.samples)
+  .get("/", transcripts.list)
+  .post("/", validate({ body: AnalyzeTranscriptBody }), transcripts.create)
+  .get("/:id", validate({ params: IdParam }), transcripts.get)
+  .delete("/:id", validate({ params: IdParam }), transcripts.remove);
+
 export const apiRouter = Router()
   .get("/health", health)
   .get("/principles", guides.principles)
   .use("/auth", authRoutes)
   .use("/guides", guideRoutes)
-  .use("/sessions", sessionRoutes);
+  .use("/sessions", sessionRoutes)
+  .use("/transcripts", transcriptRoutes);

@@ -1,0 +1,39 @@
+{
+  "id": "fitness-quan",
+  "title": "Thẻ tập gym bỏ dở · phỏng vấn Quân",
+  "description": "Nhân viên văn phòng đóng thẻ gym một năm nhưng ít đi. 16 lượt.",
+  "me": "Hà",
+  "lines": [
+    "Hà: Chào anh Quân, cảm ơn anh đã nhận lời. Anh kể em nghe lần gần nhất anh tập thể dục là khi nào?",
+    "Quân: Tuần trước, hôm thứ ba. Đáng lẽ tuần này cũng đi rồi nhưng mà… thôi, bận.",
+    "Hà: Anh tập ở phòng gym hay ở nhà?",
+    "Quân: Phòng gym gần công ty. Thật ra đóng thẻ một năm mười hai triệu mà mới đi được chục buổi.",
+    "Hà: Mười hai triệu mà mới đi chục buổi, chuyện đó diễn ra thế nào ạ?",
+    "Quân: Hồi đầu đi đều, có ông bạn cùng phòng đi chung. Từ lúc ông ấy chuyển công ty thì mình đi một mình, thấy chán.",
+    "Hà: App tập luyện chắc giúp anh nhiều lắm nhỉ?",
+    "Quân: Cũng có, nó nhắc giờ tập.",
+    "Thật ra nhiều khi nó nhắc lúc mình đang họp, mình tắt luôn thông báo rồi.",
+    "Hà: Nếu app nhắc đúng giờ hơn thì anh sẽ tập đều hơn không?",
+    "Quân: Chắc là có.",
+    "Hà: Anh tập để giảm cân hay để khoẻ hơn, và anh có định thuê huấn luyện viên không?",
+    "Quân: Để khoẻ thôi. Vợ mình cứ nhắc mãi chuyện đau lưng.",
+    "Hà: Vợ anh nhắc chuyện đau lưng từ khi nào, anh kể em nghe lần gần nhất chị ấy nhắc?",
+    "Quân: Tuần trước, lúc mình cúi xuống bế con thì đau nhói. Vợ mình bảo đi khám mà mình chưa đi.",
+    "Hà: Cảm ơn anh nhiều, hôm nay vậy là đủ rồi ạ.",
+    "Quân: Ừ, chào em."
+  ],
+  "expected": {
+    "signals": [
+      { "turn": 1, "quote": "Đáng lẽ tuần này cũng đi rồi nhưng mà…", "status": "missed" },
+      { "turn": 3, "quote": "Thật ra đóng thẻ một năm mười hai triệu mà mới đi được chục buổi.", "status": "caught" },
+      { "turn": 5, "quote": "thì mình đi một mình, thấy chán", "status": "missed" },
+      { "turn": 7, "quote": "Thật ra nhiều khi nó nhắc lúc mình đang họp, mình tắt luôn thông báo rồi.", "status": "missed" },
+      { "turn": 11, "quote": "Vợ mình cứ nhắc mãi chuyện đau lưng.", "status": "caught" }
+    ],
+    "mistakes": [
+      { "turn": 6, "type": "leading" },
+      { "turn": 8, "type": "future" },
+      { "turn": 10, "type": "double" }
+    ]
+  }
+}

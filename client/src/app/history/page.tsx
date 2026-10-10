@@ -3,23 +3,53 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import type { SessionSummary } from "@/types/api";
+import type { SessionSummary, TranscriptSummary } from "@/types/api";
 import { ArrowRight } from "@/components/BrandMark";
 import { Dialog } from "@/components/Dialog";
 import { SignalDots } from "@/components/SignalDots";
 import { ProgressChart } from "@/components/ProgressChart";
 import { STATUS_TEXT, fmtDate, pct } from "@/lib/labels";
 
-/** S10/S11 — practice history (FR-11): progress chart (score + question mistakes), current focus, sessions table, deletes with confirmation. */
+/**
+ * S10/S11 — practice history (FR-11): progress chart (score + question mistakes), current focus, sessions table,
+ * analysed real-interview transcripts, deletes with confirmation.
+ */
 export default function HistoryPage() {
   const [rows, setRows] = useState<SessionSummary[] | null>(null);
+  const [analyses, setAnalyses] = useState<TranscriptSummary[] | null>(null);
+  const [analysisToDelete, setAnalysisToDelete] = useState<TranscriptSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<SessionSummary | null>(null);
   const [deleteAll, setDeleteAll] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  const load = () => api.sessions().then(setRows).catch((e: Error) => setError(e.message));
+  // Sessions and analyses load independently: one failing must not hide the other.
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
+  const [analysesError, setAnalysesError] = useState<string | null>(null);
+  const load = () =>
+    Promise.allSettled([
+      api.sessions().then(
+        (s) => {
+          setRows(s);
+          setSessionsError(null);
+        },
+        (e: Error) => {
+          setRows([]);
+          setSessionsError(e.message);
+        },
+      ),
+      api.transcripts().then(
+        (a) => {
+          setAnalyses(a);
+          setAnalysesError(null);
+        },
+        (e: Error) => {
+          setAnalyses([]);
+          setAnalysesError(e.message);
+        },
+      ),
+    ]);
   useEffect(() => {
     void load();
   }, []);
@@ -50,11 +80,26 @@ export default function HistoryPage() {
     }
   }
 
+  async function confirmDeleteAnalysis() {
+    if (!analysisToDelete) return;
+    setBusy(true);
+    try {
+      await api.deleteTranscript(analysisToDelete.id);
+      setToast(`Đã xoá bản ghi ${analysisToDelete.title}`);
+      setAnalysisToDelete(null);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function confirmDeleteAll() {
     setBusy(true);
     try {
-      const { deleted } = await api.deleteAllSessions();
-      setToast(`Đã xoá ${deleted} buổi`);
+      const { deleted, analysesDeleted = 0 } = await api.deleteAllSessions();
+      setToast(analysesDeleted ? `Đã xoá ${deleted} buổi và ${analysesDeleted} bản ghi` : `Đã xoá ${deleted} buổi`);
       setDeleteAll(false);
       await load();
     } catch (e) {
@@ -65,21 +110,36 @@ export default function HistoryPage() {
   }
 
   if (error) return <div className="error-banner">{error}</div>;
-  if (!rows) return <div className="state-msg muted">Đang tải…</div>;
+  if (!rows || !analyses) return <div className="state-msg muted">Đang tải…</div>;
 
-  if (rows.length === 0) {
+  if (rows.length === 0 && analyses.length === 0 && !sessionsError && !analysesError) {
     // S10a — empty history
     return (
       <div className="state-msg">
         <h6 className="muted">Khả năng bắt tín hiệu</h6>
         <h2>Chưa có buổi nào. Điểm của bạn sẽ hiện ở đây sau buổi đầu tiên.</h2>
-        <Link href="/" className="btn btn-primary">Bắt đầu buổi đầu tiên <ArrowRight size={16} /></Link>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <Link href="/" className="btn btn-primary">Bắt đầu buổi đầu tiên <ArrowRight size={16} /></Link>
+          <Link href="/transcripts/new" className="btn btn-secondary">Phân tích bản ghi thật</Link>
+        </div>
       </div>
     );
   }
 
+  const deleteAllButton = (
+    <button className="btn btn-ghost" onClick={() => setDeleteAll(true)}>Xoá lịch sử</button>
+  );
+
   return (
     <>
+      {sessionsError && (
+        <div className="section">
+          <h3 style={{ margin: "0 0 12px" }}>Các buổi</h3>
+          <div className="error-banner">Không tải được các buổi luyện tập: {sessionsError}</div>
+        </div>
+      )}
+      {rows.length > 0 && (
+      <>
       <div className="section grid-12 hist-top">
         <div style={{ gridColumn: "1 / span 7" }}>
           <ProgressChart sessions={ended} />
@@ -102,7 +162,7 @@ export default function HistoryPage() {
       <div className="section">
         <div className="sc-row-head">
           <h3 style={{ margin: 0 }}>Các buổi</h3>
-          <button className="btn btn-ghost" onClick={() => setDeleteAll(true)}>Xoá lịch sử</button>
+          {deleteAllButton}
         </div>
         <div className="hist-table-wrap">
         <table className="table hist-table">
@@ -155,17 +215,85 @@ export default function HistoryPage() {
         </table>
         </div>
       </div>
+      </>
+      )}
+
+      <div className="section">
+        <div className="sc-row-head">
+          <h3 style={{ margin: 0 }}>Bản ghi đã phân tích</h3>
+          {rows.length === 0 ? deleteAllButton : <Link href="/transcripts/new">Phân tích bản ghi mới</Link>}
+        </div>
+        {analysesError ? (
+          <div className="error-banner">Không tải được các bản ghi đã phân tích: {analysesError}</div>
+        ) : analyses.length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>
+            Chưa có bản ghi nào. <Link href="/transcripts/new">Dán bản ghi một buổi phỏng vấn thật</Link> để xem bạn đã bắt hay bỏ lỡ tín hiệu nào.
+          </p>
+        ) : (
+          <div className="hist-table-wrap">
+            <table className="table hist-table">
+              <thead>
+                <tr>
+                  <th>Ngày</th>
+                  <th>Bản ghi</th>
+                  <th>Tín hiệu</th>
+                  <th>Câu nên viết lại</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {analyses.map((a) => (
+                  <tr key={a.id}>
+                    <td style={{ whiteSpace: "nowrap" }}>{fmtDate(a.createdAt)}</td>
+                    <td>
+                      <Link href={`/transcripts/${a.id}`} style={{ color: "inherit" }}>
+                        <strong>{a.title}</strong>
+                      </Link>
+                      <span className="muted"> · {a.turnCount} lượt</span>
+                    </td>
+                    <td>
+                      {a.counts.total > 0 ? (
+                        <SignalDots
+                          size={10}
+                          statuses={[
+                            ...Array<"caught">(a.counts.caught).fill("caught"),
+                            ...Array<"partial">(a.counts.partial).fill("partial"),
+                            ...Array<"missed">(a.counts.missed).fill("missed"),
+                          ]}
+                        />
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
+                    </td>
+                    <td className="muted">{a.feedbackCount}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <button className="btn btn-icon" aria-label="Xoá bản ghi" title="Xoá bản ghi" onClick={() => setAnalysisToDelete(a)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {toast && <div className="toast">{toast}</div>}
 
       {toDelete && (
         <Dialog title={`Xoá buổi ${fmtDate(toDelete.startedAt)} · ${toDelete.guideTitle}?`} confirmLabel="Xoá" onConfirm={confirmDelete} onCancel={() => setToDelete(null)} busy={busy} danger>
-          Hội thoại và bảng đánh giá của buổi này sẽ bị xoá khỏi trình duyệt. Không thể hoàn tác.
+          Hội thoại và bảng đánh giá của buổi này sẽ bị xoá khỏi lịch sử của bạn. Không thể hoàn tác.
+        </Dialog>
+      )}
+      {analysisToDelete && (
+        <Dialog title={`Xoá bản ghi ${analysisToDelete.title}?`} confirmLabel="Xoá" onConfirm={confirmDeleteAnalysis} onCancel={() => setAnalysisToDelete(null)} busy={busy} danger>
+          Bản ghi và phân tích này sẽ bị xoá. Không thể hoàn tác.
         </Dialog>
       )}
       {deleteAll && (
         <Dialog title="Xoá toàn bộ lịch sử?" confirmLabel="Xoá tất cả" onConfirm={confirmDeleteAll} onCancel={() => setDeleteAll(false)} busy={busy} danger>
-          {rows.length} buổi cùng hội thoại và bảng đánh giá sẽ bị xoá khỏi trình duyệt này. Không thể hoàn tác.
+          {rows.length} buổi cùng hội thoại và bảng đánh giá, và {analyses.length} bản ghi đã phân tích sẽ bị xoá khỏi lịch sử của bạn (cả trên tài khoản). Không thể hoàn tác.
         </Dialog>
       )}
     </>

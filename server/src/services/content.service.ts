@@ -1,7 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { GuideSchema, PrincipleSchema, type Guide, type Principle } from "../types/content";
+import { GuideSchema, PrincipleSchema, SampleTranscriptSchema, type Guide, type Principle, type SampleTranscript } from "../types/content";
+import { parseTranscript, resolveSpeaker } from "../agent/transcriptParser";
 import type { QuestionType } from "../types/domain";
 import { notFound } from "../utils/errors";
 
@@ -14,12 +15,13 @@ const CONTENT_DIR = path.resolve(__dirname, "..", "..", "content");
 
 let guides: Map<string, Guide> | null = null;
 let principles: Principle[] | null = null;
+let transcripts: SampleTranscript[] | null = null;
 
 function readJson(file: string): unknown {
   return JSON.parse(readFileSync(file, "utf8"));
 }
 
-export function loadContent(): { guides: number; principles: number } {
+export function loadContent(): { guides: number; principles: number; transcripts: number } {
   const guideDir = path.join(CONTENT_DIR, "guides");
   const loaded = new Map<string, Guide>();
   for (const file of readdirSync(guideDir).filter((f) => f.endsWith(".json")).sort()) {
@@ -34,12 +36,27 @@ export function loadContent(): { guides: number; principles: number } {
   if (!result.success) throw new Error(`Invalid principles.json: ${z.prettifyError(result.error)}`);
   principles = result.data;
 
-  return { guides: guides.size, principles: principles.length };
+  // Sample transcripts must parse, name a real interviewer, and quote their expected signals verbatim.
+  const transcriptDir = path.join(CONTENT_DIR, "transcripts");
+  const samples: SampleTranscript[] = [];
+  for (const file of readdirSync(transcriptDir).filter((f) => f.endsWith(".json")).sort()) {
+    const parsed = SampleTranscriptSchema.safeParse(readJson(path.join(transcriptDir, file)));
+    if (!parsed.success) throw new Error(`Invalid transcript ${file}: ${z.prettifyError(parsed.error)}`);
+    const { turns, speakers } = parseTranscript(parsed.data.lines.join("\n"));
+    if (!resolveSpeaker(speakers, parsed.data.me)) throw new Error(`Transcript ${file}: "me" is not a speaker`);
+    for (const s of parsed.data.expected.signals) {
+      if (!turns[s.turn]?.text.includes(s.quote)) throw new Error(`Transcript ${file}: expected quote not in turn #${s.turn}`);
+    }
+    samples.push(parsed.data);
+  }
+  transcripts = samples;
+
+  return { guides: guides.size, principles: principles.length, transcripts: transcripts.length };
 }
 
 function ensureLoaded() {
-  if (!guides || !principles) loadContent();
-  return { guides: guides!, principles: principles! };
+  if (!guides || !principles || !transcripts) loadContent();
+  return { guides: guides!, principles: principles!, transcripts: transcripts! };
 }
 
 export function listGuides(): Guide[] {
@@ -74,4 +91,9 @@ export function listPrinciples(): Principle[] {
  */
 export function lookupPrinciple(mistake: QuestionType): Principle | undefined {
   return ensureLoaded().principles.find((p) => p.appliesTo.includes(mistake));
+}
+
+/** Built-in sample transcripts, `text` joined from the stored lines. */
+export function listSampleTranscripts(): (SampleTranscript & { text: string })[] {
+  return ensureLoaded().transcripts.map((t) => ({ ...t, text: t.lines.join("\n") }));
 }

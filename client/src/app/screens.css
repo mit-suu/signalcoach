@@ -173,3 +173,24 @@
   .pg-pt[data-m] .pg-pt-val, .pg-pt[data-last] .pg-pt-val { visibility: visible; }
   .pg-xl[data-m] { visibility: visible; }
 }
+
+/* ── transcript analysis ───────────────────────────────────── */
+.privacy-note { display: flex; flex-direction: column; gap: 4px; margin-top: 16px; padding: 12px 14px; font-size: 13px; background: var(--color-surface); border-left: 3px solid var(--color-accent); }
+.transcript-input { min-height: 280px; font-size: 14px; line-height: 1.5; }
+.char-count { font-size: 12px; text-align: right; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.char-count.over { color: var(--color-accent); font-weight: 700; }
+.speaker-pick { border: 0; margin: 0; padding: 0; min-width: 0; }
+.speaker-pick legend { font-size: 13px; font-weight: 600; margin-bottom: 8px; padding: 0; }
+.speaker-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.speaker-option { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; border: 1px solid var(--color-divider); max-width: 100%; overflow-wrap: anywhere; }
+.speaker-option.on { border-color: var(--color-accent); background: var(--color-accent-100); }
+.speaker-option input { accent-color: var(--color-accent); margin: 0; }
+.speaker-option .muted { font-size: 12px; }
+.error-box { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 14px; font-size: 13px; background: var(--color-accent-100); color: var(--color-accent-800); }
+.transcript-head { margin: 0 40px 16px; }
+.selfcheck-list { margin: 12px 0 0; padding-left: 18px; font-size: 12px; display: grid; gap: 4px; overflow-wrap: anywhere; }
+.transcript-result .sig-quote, .transcript-result .sig-asked, .transcript-result .fb-original { overflow-wrap: anywhere; }
+
+@media (max-width: 900px) {
+  .transcript-head { margin: 0 16px 12px; }
+}

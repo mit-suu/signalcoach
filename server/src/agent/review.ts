@@ -8,6 +8,7 @@ import type { Scorecard, ScorecardFeedback, ScorecardFocus, ScorecardSignal, Sel
 import { FOLLOW_UP_WINDOW, QUESTION_TYPES, type QuestionType } from "../types/domain";
 import { listPrinciples, lookupPrinciple } from "../services/content.service";
 import { extractJson } from "./judge";
+import { quoteIn, similarity } from "./textMatch";
 import { computeScore, countStatuses } from "./scoring";
 
 /**
@@ -182,19 +183,6 @@ export async function generateScorecard(session: SessionDoc): Promise<{ scorecar
 // ─────────────────────────────────────────────────────────────────────────────
 // Self-check (pure, deterministic) — every claim is verified against the transcript
 // ─────────────────────────────────────────────────────────────────────────────
-
-const norm = (s: string) => s.toLowerCase().replace(/[“”"'’`.,;:!?()\-–—…]/g, " ").replace(/\s+/g, " ").trim();
-const words = (s: string) => new Set(norm(s).split(" ").filter((w) => w.length > 1));
-/** Dice coefficient over word sets — 1 = same words, 0 = nothing in common. */
-function similarity(a: string, b: string): number {
-  const A = words(a);
-  const B = words(b);
-  if (!A.size || !B.size) return 0;
-  let inter = 0;
-  for (const w of A) if (B.has(w)) inter++;
-  return (2 * inter) / (A.size + B.size);
-}
-const quoteIn = (quote: string, text: string) => Boolean(quote.trim()) && norm(text).includes(norm(quote));
 
 export function selfCheck(session: SessionDoc, review: ReviewOutput): { scorecard: Scorecard; log: SelfCheckEntry[] } {
   const guide = session.guide as Guide;

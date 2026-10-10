@@ -5,8 +5,11 @@ import type {
   Principle,
   PublicGuide,
   PublicUser,
+  SampleTranscript,
   SessionSummary,
   SessionView,
+  TranscriptAnalysis,
+  TranscriptSummary,
   TurnEvent,
 } from "@/types/api";
 
@@ -65,7 +68,15 @@ export const api = {
   buildScorecard: (id: string) =>
     request<{ session: SessionView }>(`/sessions/${id}/scorecard`, { method: "POST" }).then((r) => r.session),
   deleteSession: (id: string) => request<void>(`/sessions/${id}`, { method: "DELETE" }),
-  deleteAllSessions: () => request<{ deleted: number }>("/sessions", { method: "DELETE" }),
+  /** "Xoá lịch sử": sessions and transcript analyses. */
+  deleteAllSessions: () => request<{ deleted: number; analysesDeleted?: number }>("/sessions", { method: "DELETE" }),
+
+  transcriptSamples: () => request<{ samples: SampleTranscript[] }>("/transcripts/samples").then((r) => r.samples),
+  analyzeTranscript: (body: { text: string; me: string; title?: string }) =>
+    request<{ analysis: TranscriptAnalysis }>("/transcripts", json(body)).then((r) => r.analysis),
+  transcripts: () => request<{ analyses: TranscriptSummary[] }>("/transcripts").then((r) => r.analyses),
+  transcript: (id: string) => request<{ analysis: TranscriptAnalysis }>(`/transcripts/${encodeURIComponent(id)}`).then((r) => r.analysis),
+  deleteTranscript: (id: string) => request<void>(`/transcripts/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };
 
 /**
