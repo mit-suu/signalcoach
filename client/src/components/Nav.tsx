@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
@@ -12,14 +12,15 @@ const LINKS = [
   { href: "/principles", label: "Nguyên tắc", match: (p: string) => p.startsWith("/principles") },
 ];
 
+const noopSubscribe = () => () => {};
+
 export function Nav() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading: authLoading, logout } = useAuth();
   // Nav sits in Suspense, so it can hydrate after AuthProvider has already resolved /me.
   // Render the server's "loading" output until hydrated, or the auth links mismatch.
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const loading = authLoading || !hydrated;
 
   return (
