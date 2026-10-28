@@ -49,6 +49,8 @@ export interface Decision {
   questionType: QuestionType;
   flags: string[];
   toolCalls: ToolCall[];
+  /** The persona already proposed ending and was asked again: answer briefly and say goodbye (the client then locks the chat). */
+  farewell?: boolean;
 }
 
 export interface StepInput {
@@ -92,7 +94,7 @@ export function step(input: StepInput): StepResult {
     return {
       decision: {
         action: "clarify",
-        reason: "Câu hỏi gộp hai ý — persona hỏi lại cho rõ trước khi trả lời (FR-5).",
+        reason: "Câu hỏi gộp hai ý — persona hỏi lại cho rõ trước khi trả lời.",
         brief: false,
         questionType: qt,
         flags,
@@ -161,7 +163,7 @@ export function step(input: StepInput): StepResult {
   }
   if (!plant && pending.length && input.questionCount >= PLANT_DEADLINE_QUESTIONS && !j.breakAttempt) {
     plant = pickForced(pending, defs);
-    plantReason = `Đã ${input.questionCount} câu hỏi mà còn ${pending.length} tín hiệu chưa kể — kể ngay để không bỏ sót (FR-2).`;
+    plantReason = `Đã ${input.questionCount} câu hỏi mà còn ${pending.length} tín hiệu chưa kể — kể ngay để không bỏ sót.`;
   }
   if (plant) {
     toolCalls.push({ name: "seed_signal", args: { signalId: plant.signalId, turn: input.userTurnIndex + 1 }, ok: true });
@@ -182,11 +184,12 @@ export function step(input: StepInput): StepResult {
   let action: AgentAction;
   let reason: string;
   let signalId: string | undefined;
+  let farewell = false;
 
   const allOut = signals.every((s) => s.status !== "pending" && s.status !== "seeded");
   if (j.breakAttempt) {
     action = "stay_in_character";
-    reason = "Người hỏi cố phá vai — persona ngơ ngác như người thật và quay lại chủ đề (FR-4).";
+    reason = "Người hỏi cố phá vai — persona ngơ ngác như người thật và quay lại chủ đề.";
   } else if (plant) {
     action = "plant_signal";
     signalId = plant.signalId;
@@ -200,9 +203,14 @@ export function step(input: StepInput): StepResult {
     reason = "Mọi tín hiệu đã xuất hiện và cửa sổ hỏi tiếp đã đóng — persona gợi ý kết thúc.";
     flags.push("end_proposed");
     toolCalls.push({ name: "end_session", args: { reason: "all_signals_surfaced", proposedOnly: true }, ok: true });
+  } else if (input.endProposed) {
+    // Real people who said they have to leave don't keep chatting: one last short answer, then goodbye.
+    action = "propose_end";
+    farewell = true;
+    reason = "Persona đã nói sắp phải đi — trả lời ngắn câu cuối rồi chào tạm biệt.";
   } else if (brief) {
     action = "answer_briefly";
-    reason = `Câu hỏi ${label(qt)} — persona trả lời ngắn, không mở rộng (FR-5).`;
+    reason = `Câu hỏi ${label(qt)} — persona trả lời ngắn, không mở rộng.`;
   } else if (qt === "vague") {
     action = "answer_briefly";
     reason = "Câu hỏi chung chung — persona trả lời chung chung như người thật.";
@@ -212,7 +220,7 @@ export function step(input: StepInput): StepResult {
   }
 
   return {
-    decision: { action, reason, signalId, revealLayer: plant || deeperSignal ? revealLayer : undefined, brief, questionType: qt, flags, toolCalls },
+    decision: { action, reason, signalId, revealLayer: plant || deeperSignal ? revealLayer : undefined, brief, questionType: qt, flags, toolCalls, ...(farewell && { farewell }) },
     signals,
   };
 }

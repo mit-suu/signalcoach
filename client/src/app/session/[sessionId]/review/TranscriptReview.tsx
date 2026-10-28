@@ -176,16 +176,8 @@ function TurnRow({
         {showAgent && t.role === "persona" && t.decision && (
           <div className="rv-agent">
             <span className="tag tag-outline">{ACTION_TEXT[t.decision.action]}</span>
-            <span className="muted">{t.decision.reason}</span>
-            {t.toolCalls && t.toolCalls.length > 0 && (
-              <code className="rv-tools">
-                {t.toolCalls.map((c, i) => (
-                  <span key={i}>
-                    {c.name}({Object.entries(c.args).map(([k, v]) => `${k}=${String(v)}`).join(", ")})
-                  </span>
-                ))}
-              </code>
-            )}
+            {/* Older sessions stored spec ids like "(FR-5)" in the reason; they mean nothing to a learner. */}
+            <span className="muted">{t.decision.reason.replace(/\s*\(N?FR-[\d, NFR-]+\)/g, "")}</span>
           </div>
         )}
       </div>

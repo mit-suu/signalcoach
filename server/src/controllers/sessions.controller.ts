@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { userId } from "../middleware/auth";
 import * as sessions from "../services/session.service";
 import { deleteAllAnalyses } from "../services/transcript.service";
-import { runTurn } from "../agent/turnRunner";
+import { personaLeft, runTurn } from "../agent/turnRunner";
 import { closeSignals } from "../agent/stateMachine";
 import { generateScorecard } from "../agent/review";
 import { openSse } from "../utils/sse";
@@ -38,6 +38,7 @@ function toSessionView(s: SessionDoc) {
     signalCount: s.signals.length,
     signalsSurfaced: s.signals.filter((x) => x.status !== "pending").length,
     endProposed: lastPersona?.decision?.action === "propose_end",
+    personaLeft: personaLeft(s),
     turns: s.turns.map((t) =>
       active
         ? { index: t.index, role: t.role, text: t.text, createdAt: t.createdAt }

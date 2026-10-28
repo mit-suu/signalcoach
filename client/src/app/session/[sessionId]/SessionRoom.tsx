@@ -79,7 +79,7 @@ export function SessionRoom({ params }: { params: Promise<{ sessionId: string }>
             setSession((s) => {
               if (!s) return s;
               const turns = [...s.turns.filter((t) => t.index !== e.data.turn.index), e.data.turn].sort((a, b) => a.index - b.index);
-              return { ...s, turns, questionCount: e.data.questionCount, signalsSurfaced: e.data.signalsSurfaced, endProposed: e.data.endProposed };
+              return { ...s, turns, questionCount: e.data.questionCount, signalsSurfaced: e.data.signalsSurfaced, endProposed: e.data.endProposed, personaLeft: e.data.personaLeft };
             });
             setEndProposed(e.data.endProposed);
           }
@@ -133,6 +133,7 @@ export function SessionRoom({ params }: { params: Promise<{ sessionId: string }>
   const personaShort = shortName(guide.persona.name);
   const remaining = session.signalCount - session.signalsSurfaced;
   const lastSaved = session.turns.at(-1);
+  const left = session.personaLeft;
 
   if (ending) {
     // S06 — the agent re-reads the whole interview before the scorecard
@@ -233,13 +234,13 @@ export function SessionRoom({ params }: { params: Promise<{ sessionId: string }>
               </div>
             </div>
           )}
-          {endProposed && streaming === null && !failed && (
-            // S04d — persona proposed ending: everything is out, scorecard ready
+          {(endProposed || left) && streaming === null && !failed && (
+            // S04d — persona proposed ending: everything is out, scorecard ready. After a goodbye, ending is the only way on.
             <div className="turn turn-propose">
               <div className="turn-who"><b>Gợi ý</b></div>
               <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                <span>Kết thúc nhé? Bảng đánh giá đã sẵn sàng.</span>
-                <button className="btn btn-ghost" onClick={() => { setEndProposed(false); inputRef.current?.focus(); }}>Hỏi thêm một câu</button>
+                <span>{left ? `${personaShort} đã chào tạm biệt. Buổi phỏng vấn kết thúc — xem bạn đã bắt được gì nhé.` : "Kết thúc nhé? Bảng đánh giá đã sẵn sàng."}</span>
+                {!left && <button className="btn btn-ghost" onClick={() => { setEndProposed(false); inputRef.current?.focus(); }}>Hỏi thêm một câu</button>}
                 <button className="btn btn-primary" onClick={end}>Xem đánh giá <ArrowRight size={16} /></button>
               </div>
             </div>
@@ -253,13 +254,13 @@ export function SessionRoom({ params }: { params: Promise<{ sessionId: string }>
             className="input"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={online ? `Hỏi ${personaShort} điều gì đó…` : "Đang chờ kết nối…"}
+            placeholder={left ? `${personaShort} đã rời buổi phỏng vấn` : online ? `Hỏi ${personaShort} điều gì đó…` : "Đang chờ kết nối…"}
             maxLength={2000}
-            disabled={streaming !== null || !online}
+            disabled={streaming !== null || !online || left}
             autoFocus
             autoComplete="off"
           />
-          <button className="btn btn-primary" disabled={!draft.trim() || streaming !== null || !online}>
+          <button className="btn btn-primary" disabled={!draft.trim() || streaming !== null || !online || left}>
             Gửi
             <ArrowRight size={16} />
           </button>

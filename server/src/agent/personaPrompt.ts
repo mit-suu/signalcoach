@@ -50,7 +50,9 @@ export function buildPersonaMessages(guide: Guide, turns: TurnLike[], decision: 
       break;
     case "propose_end":
       directive.push(
-        "Bạn đã kể hết những gì muốn kể và sắp phải đi. Hãy trả lời ngắn câu vừa rồi, rồi tự nhiên gợi ý kết thúc (ví dụ bạn sắp phải đi đón con / vào họp) và hỏi người ta còn muốn hỏi gì nữa không.",
+        decision.farewell
+          ? "Bạn đã nói là phải đi rồi và giờ thật sự phải đi. Trả lời thật ngắn câu vừa rồi (1 câu), cảm ơn người ta và chào tạm biệt. Không hỏi lại, không mở chủ đề mới."
+          : "Bạn đã kể hết những gì muốn kể và sắp phải đi. Hãy trả lời ngắn câu vừa rồi, rồi tự nhiên gợi ý kết thúc (ví dụ bạn sắp phải đi đón con / vào họp) và hỏi người ta còn muốn hỏi gì nữa không.",
       );
       break;
     default:

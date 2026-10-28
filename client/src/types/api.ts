@@ -132,6 +132,8 @@ export interface SessionView {
   signalCount: number;
   signalsSurfaced: number;
   endProposed: boolean;
+  /** The persona already said goodbye: the chat is closed, only "see the scorecard" is left. */
+  personaLeft: boolean;
   turns: Turn[];
   scorecard: Scorecard | null;
   scorecardError: string | null;
@@ -175,7 +177,7 @@ export interface ApiErrorBody {
 export type TurnEvent =
   | { event: "accepted"; data: { index: number } }
   | { event: "delta"; data: { text: string } }
-  | { event: "done"; data: { turn: Turn; questionCount: number; signalsSurfaced: number; signalCount: number; endProposed: boolean } }
+  | { event: "done"; data: { turn: Turn; questionCount: number; signalsSurfaced: number; signalCount: number; endProposed: boolean; personaLeft: boolean } }
   | { event: "error"; data: { code: string; message: string; retryable: boolean } };
 
 /** Analysis of a real interview transcript (server/src/types/transcript.ts). Counts only — no score. */

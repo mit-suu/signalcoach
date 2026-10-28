@@ -126,8 +126,10 @@ describe("state machine — hard rules", () => {
     const r = step(base({ signals, questionCount: 9 }));
     expect(r.decision.action).toBe("propose_end");
     expect(r.decision.toolCalls.map((t) => t.name)).toContain("end_session");
+    // asked again after proposing: one short last answer and goodbye
     const again = step(base({ signals, questionCount: 10, endProposed: true }));
-    expect(again.decision.action).toBe("answer");
+    expect(again.decision.action).toBe("propose_end");
+    expect(again.decision.farewell).toBe(true);
   });
 
   it("closeSignals maps pending → not_surfaced and seeded → missed", () => {

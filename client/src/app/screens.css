@@ -97,7 +97,6 @@
 .rv-turn.user { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
 .rv-turn p { margin: 0; font-size: 15px; line-height: 1.5; max-width: 680px; white-space: pre-wrap; }
 .rv-agent { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; margin-top: 8px; font-size: 13px; }
-.rv-tools { display: flex; flex-direction: column; gap: 2px; width: 100%; font-size: 11px; color: var(--color-neutral-700); }
 .rv-side { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
 .rv-sig { display: flex; gap: 8px; align-items: flex-start; }
 .rv-sig .dot { margin-top: 3px; }

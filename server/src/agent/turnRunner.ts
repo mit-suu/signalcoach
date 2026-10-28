@@ -136,5 +136,12 @@ function donePayload(session: SessionDoc, replyIndex: number) {
     signalsSurfaced: session.signals.filter((s) => s.status !== "pending").length,
     signalCount: session.signals.length,
     endProposed: t.decision?.action === "propose_end",
+    personaLeft: personaLeft(session),
   };
+}
+
+/** The persona proposed ending, was asked again and said goodbye — the chat is over, only the scorecard is left. */
+export function personaLeft(session: SessionDoc): boolean {
+  const personaTurns = session.turns.filter((t) => t.role === "persona");
+  return personaTurns.at(-1)?.decision?.action === "propose_end" && personaTurns.filter((t) => t.decision?.action === "propose_end").length >= 2;
 }
