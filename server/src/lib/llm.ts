@@ -1,3 +1,4 @@
+import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { GoogleGenAI, ApiError as GeminiApiError, type Content, type ThinkingLevel } from "@google/genai";
 import { env, type ReasoningEffort } from "../config/env";
@@ -6,7 +7,7 @@ import { mockCompleteJson, mockStreamText } from "./llm.mock";
 
 /**
  * Single port for every LLM call. The agent code never knows which provider is behind it,
- * so swapping Gemini ↔ an OpenAI-compatible endpoint ↔ the offline mock is an env change.
+ * so swapping Gemini ↔ Claude ↔ an OpenAI-compatible endpoint ↔ the offline mock is an env change.
  */
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -17,7 +18,7 @@ export interface ChatOptions {
   model: string;
   temperature?: number;
   maxTokens?: number;
-  /** Thinking effort. Gemini: thinkingLevel (minimal is fastest); OpenAI-compatible: reasoning_effort. */
+  /** Thinking effort. Gemini: thinkingLevel (minimal is fastest); Claude: output_config.effort; OpenAI-compatible: reasoning_effort. */
   reasoningEffort?: ReasoningEffort;
   signal?: AbortSignal;
   /** Optional JSON schema the provider may enforce on completeJson output (Gemini responseJsonSchema). */
@@ -147,6 +148,87 @@ function createGemini(): LlmClient {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Anthropic (Claude)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function toClaude(messages: ChatMessage[]): { system: string; messages: Anthropic.MessageParam[] } {
+  const system = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
+  const out: Anthropic.MessageParam[] = messages
+    .filter((m) => m.role !== "system")
+    .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+  // Claude also expects the first message to come from the user.
+  if (out[0]?.role === "assistant") out.unshift({ role: "user", content: "(Buổi phỏng vấn bắt đầu.)" });
+  return { system, messages: out };
+}
+
+function createAnthropic(): LlmClient {
+  const client = new Anthropic({
+    apiKey: env.ANTHROPIC_API_KEY,
+    timeout: env.LLM_TIMEOUT_MS,
+    maxRetries: 2, // SDK retries 429/5xx/network with backoff
+  });
+  const wrap = (err: unknown) =>
+    err instanceof Anthropic.BadRequestError ? err : new LlmUnavailableError("LLM unavailable after retries", err);
+
+  /**
+   * Haiku 5.5 rejects non-default temperature, so it is never sent.
+   * none/minimal → thinking off at low effort (persona/judge sit on the 3s first-token budget, NFR-1);
+   * low/medium/high → adaptive thinking at that effort.
+   * Thinking tokens count against max_tokens, while callers size maxTokens for the visible answer:
+   * measured 2026-10-28, effort high spent all 8192 tokens thinking and returned no text at all.
+   */
+  const THINKING_HEADROOM = 32_000;
+  const params = (opts: ChatOptions, system: string, messages: Anthropic.MessageParam[]) => {
+    const off = !opts.reasoningEffort || opts.reasoningEffort === "none" || opts.reasoningEffort === "minimal";
+    return {
+      model: opts.model,
+      max_tokens: (opts.maxTokens ?? 16000) + (off ? 0 : THINKING_HEADROOM),
+      ...(system && { system }),
+      messages,
+      thinking: off ? ({ type: "disabled" } as const) : ({ type: "adaptive" } as const),
+      output_config: { effort: off ? ("low" as const) : (opts.reasoningEffort as "low" | "medium" | "high") },
+    };
+  };
+
+  return {
+    async *streamChat(messages, opts) {
+      const { system, messages: msgs } = toClaude(messages);
+      try {
+        const stream = client.messages.stream(params(opts, system, msgs), { signal: opts.signal });
+        for await (const event of stream) {
+          if (event.type === "content_block_delta" && event.delta.type === "text_delta") yield event.delta.text;
+        }
+        const final = await stream.finalMessage();
+        if (final.stop_reason === "refusal") logger.warn({ model: opts.model, stopDetails: final.stop_details }, "LLM refused");
+      } catch (err) {
+        if (opts.signal?.aborted) return;
+        throw wrap(err);
+      }
+    },
+    async completeJson(messages, opts) {
+      // No prefill on current Claude models: ask for JSON in the system prompt; callers run extractJson on the reply.
+      const { system, messages: msgs } = toClaude(messages);
+      const jsonRule = opts.jsonSchema
+        ? `Reply with a single JSON object only, no prose or code fences, matching this JSON schema:\n${JSON.stringify(opts.jsonSchema)}`
+        : "Reply with a single JSON object only, no prose or code fences.";
+      // Streamed even though we only want the final message: a long thinking phase would otherwise hit the HTTP timeout.
+      let res: Anthropic.Message;
+      try {
+        res = await client.messages.stream(params(opts, [system, jsonRule].filter(Boolean).join("\n\n"), msgs), { signal: opts.signal }).finalMessage();
+      } catch (err) {
+        throw wrap(err);
+      }
+      if (res.stop_reason === "refusal") logger.warn({ model: opts.model, stopDetails: res.stop_details }, "LLM refused");
+      if (res.stop_reason === "max_tokens") {
+        logger.warn({ model: opts.model, usage: res.usage }, "LLM reply cut off at max_tokens");
+        throw new LlmUnavailableError("LLM reply cut off at max_tokens");
+      }
+      return res.content.map((b) => (b.type === "text" ? b.text : "")).join("");
+    },
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // OpenAI-compatible (/v1) — kept for self-hosted models
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -223,4 +305,10 @@ function createMock(): LlmClient {
 }
 
 export const llm: LlmClient =
-  env.LLM_PROVIDER === "mock" ? createMock() : env.LLM_PROVIDER === "gemini" ? createGemini() : createOpenAiCompatible();
+  env.LLM_PROVIDER === "mock"
+    ? createMock()
+    : env.LLM_PROVIDER === "gemini"
+      ? createGemini()
+      : env.LLM_PROVIDER === "anthropic"
+        ? createAnthropic()
+        : createOpenAiCompatible();

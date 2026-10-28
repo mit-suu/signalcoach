@@ -1,6 +1,6 @@
 /**
  * Check the LLM endpoint from server/.env and measure latency against NFR-1 (first token < 3s).
- *   npm run llm:ping            (needs LLM_PROVIDER=gemini + GEMINI_API_KEYS in .env)
+ *   npm run llm:ping            (needs LLM_PROVIDER=gemini|anthropic + its API key in .env)
  * Run it twice: the first call may include a cold start.
  */
 import { env, llmRoles } from "../src/config/env";
@@ -8,7 +8,7 @@ import { llm } from "../src/lib/llm";
 
 async function main() {
   if (env.LLM_PROVIDER === "mock") {
-    console.error("Set LLM_PROVIDER=gemini (or openai_compatible) in server/.env first.");
+    console.error("Set LLM_PROVIDER=anthropic (or gemini / openai_compatible) in server/.env first.");
     process.exit(1);
   }
   const { model, reasoningEffort } = llmRoles.persona;

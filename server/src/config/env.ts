@@ -36,11 +36,13 @@ const EnvSchema = z
     TRUST_PROXY: z.coerce.number().int().min(0).default(0),
 
     // ── LLM ──
-    // mock → canned offline replies · gemini → Google Gemini API · openai_compatible → any /v1 endpoint
-    LLM_PROVIDER: z.enum(["mock", "gemini", "openai_compatible"]).default("mock"),
+    // mock → canned offline replies · gemini → Google Gemini API · anthropic → Claude API · openai_compatible → any /v1 endpoint
+    LLM_PROVIDER: z.enum(["mock", "gemini", "anthropic", "openai_compatible"]).default("mock"),
     // One or more Gemini keys, comma-separated. The next key is used when the current one is
     // rejected or out of quota (401/403/429), so a backup key keeps the demo alive.
     GEMINI_API_KEYS: csv,
+    // anthropic only
+    ANTHROPIC_API_KEY: z.string().default(""),
     // openai_compatible only
     LLM_BASE_URL: z.string().default(""),
     LLM_API_KEY: z.string().default(""),
@@ -59,16 +61,18 @@ const EnvSchema = z
   .transform((e) => {
     // Measured 2026-10-09: 3.5-flash/minimal ≈ 1s to first token (NFR-1); 3.8-flash was 30–80s under load.
     const geminiDefaults = { persona: "gemini-3.5-flash", judge: "gemini-3.5-flash-lite", review: "gemini-3.5-flash" };
+    const claudeDefaults = { persona: "claude-haiku-5-5", judge: "claude-haiku-5-5", review: "claude-haiku-5-5" };
     const isGemini = e.LLM_PROVIDER === "gemini";
-    const persona = e.LLM_MODEL_PERSONA || (isGemini ? geminiDefaults.persona : "");
+    const defaults = isGemini ? geminiDefaults : e.LLM_PROVIDER === "anthropic" ? claudeDefaults : undefined;
+    const persona = e.LLM_MODEL_PERSONA || (defaults?.persona ?? "");
     return {
       ...e,
       COOKIE_SECURE: e.COOKIE_SECURE ?? e.NODE_ENV === "production",
       isProd: e.NODE_ENV === "production",
       models: {
         persona,
-        judge: e.LLM_MODEL_JUDGE || (isGemini ? geminiDefaults.judge : persona),
-        review: e.LLM_MODEL_REVIEW || (isGemini ? geminiDefaults.review : persona),
+        judge: e.LLM_MODEL_JUDGE || (defaults?.judge ?? persona),
+        review: e.LLM_MODEL_REVIEW || (defaults?.review ?? persona),
         fallbacks: e.LLM_MODEL_FALLBACKS.length ? e.LLM_MODEL_FALLBACKS : isGemini ? ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"] : [],
       },
     };
@@ -79,6 +83,9 @@ const EnvSchema = z
     }
     if (e.LLM_PROVIDER === "gemini" && e.GEMINI_API_KEYS.length === 0) {
       ctx.addIssue({ code: "custom", path: ["GEMINI_API_KEYS"], message: "GEMINI_API_KEYS is required when LLM_PROVIDER=gemini" });
+    }
+    if (e.LLM_PROVIDER === "anthropic" && !e.ANTHROPIC_API_KEY) {
+      ctx.addIssue({ code: "custom", path: ["ANTHROPIC_API_KEY"], message: "ANTHROPIC_API_KEY is required when LLM_PROVIDER=anthropic" });
     }
     if (e.LLM_PROVIDER === "openai_compatible") {
       for (const key of ["LLM_BASE_URL", "LLM_MODEL_PERSONA"] as const) {
