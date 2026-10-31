@@ -7,6 +7,7 @@ import type { SseStream } from "../utils/sse";
 import { judgeTurn } from "./judge";
 import { step, type SignalStateLike } from "./stateMachine";
 import { buildPersonaMessages, cleanPersonaText } from "./personaPrompt";
+import { selectHint } from "./hint";
 
 /**
  * One interviewer turn — the session agent's loop ("LLM proposes, code decides"):
@@ -81,7 +82,7 @@ export async function runTurn(session: SessionDoc, input: { text: string; client
   }
   text = cleanPersonaText(text);
   if (!text) {
-    sse.send("error", { code: "LLM_EMPTY", message: "Persona trả lời trống. Thử lại nhé.", retryable: true });
+    sse.send("error", { code: "LLM_EMPTY", message: `${guide.persona.name.trim().split(/\s+/).at(-1) || "Người dùng"} chưa trả lời được. Thử lại nhé.`, retryable: true });
     return;
   }
   const tTotal = Date.now() - t0;
@@ -127,16 +128,21 @@ function toStateLike(s: SessionDoc["signals"][number]): SignalStateLike {
   };
 }
 
-/** What the browser may see mid-session: the reply text and progress counters, never signal state. */
+/**
+ * What the browser may see mid-session: the reply text, progress counters and a coaching hint
+ * kind — never signal state. `hint` is additive (older clients ignore it).
+ */
 function donePayload(session: SessionDoc, replyIndex: number) {
   const t = session.turns[replyIndex]!;
+  const left = personaLeft(session);
   return {
     turn: { index: t.index, role: t.role, text: t.text, createdAt: t.createdAt },
     questionCount: session.questionCount,
     signalsSurfaced: session.signals.filter((s) => s.status !== "pending").length,
     signalCount: session.signals.length,
     endProposed: t.decision?.action === "propose_end",
-    personaLeft: personaLeft(session),
+    personaLeft: left,
+    hint: left ? null : selectHint(session.turns, replyIndex),
   };
 }
 

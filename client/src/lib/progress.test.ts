@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SessionSummary } from "@/types/api";
-import { EMPTY_TEXT, MAX_SESSIONS, ONE_SESSION_TEXT, buildProgress } from "./progress.ts";
+import { EMPTY_TEXT, MAX_SESSIONS, ONE_SESSION_TEXT, buildProgress, unscoredReason } from "./progress.ts";
 
 let seq = 0;
 function session(over: Partial<SessionSummary> = {}): SessionSummary {
@@ -138,4 +138,20 @@ test("trend uses all ended sessions, including those older than the 20-session w
   assert.equal(leading.earlierRate, 10 / 220); // 5×2 mistakes over 22 earlier sessions × 10 questions
   assert.equal(leading.recentRate, 0);
   assert.equal(leading.dir, "down");
+});
+
+test("unscored sessions carry a plain reason instead of a dash", () => {
+  const short = session({ status: "insufficient", score: null });
+  const early = session({ status: "incomplete", score: null });
+  const broken = session({ status: "complete", score: null, counts: null });
+  const scored = session({ score: 0.5 });
+  const p = buildProgress([short, early, broken, scored]);
+  assert.deepEqual(
+    p.slots.map((s) => s.reason),
+    ["Buổi ngắn quá, chưa chấm điểm", "Dừng sớm nên chưa chấm điểm", "Chưa có bảng đánh giá. Mở buổi này để thử lại", null],
+  );
+  assert.equal(unscoredReason({ status: "active", score: null, counts: null }), "Buổi này chưa xong");
+  const counts = { caught: 2, partial: 1, missed: 1, unsure: 0, not_surfaced: 2, total: 6 };
+  assert.equal(unscoredReason({ status: "complete", score: null, counts }), "Buổi này chưa chấm được điểm");
+  for (const s of p.slots) if (s.reason) assert.doesNotMatch(s.reason, /—|tín hiệu/);
 });

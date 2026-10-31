@@ -36,7 +36,7 @@ export function mockCompleteJson(messages: ChatMessage[]): string {
     const pending = ids(user, "PENDING_IDS=");
     const open = ids(user, "OPEN_IDS=");
     const questionType = heuristicQuestionType(question);
-    const breakAttempt = /(bỏ qua|ignore).*(chỉ dẫn|hướng dẫn|instruction)|liệt kê.*tín hiệu|list.*signals/i.test(question);
+    const breakAttempt = /(bỏ qua|ignore).*(chỉ dẫn|hướng dẫn|instruction)|liệt kê.*tín hiệu|list.*signals|đổi vai|đóng vai.*(người )?phỏng vấn/i.test(question);
     const followUp =
       open.length && questionType === "good"
         ? { signalId: open[0], verdict: "caught", confidence: 0.9, evidence: question }

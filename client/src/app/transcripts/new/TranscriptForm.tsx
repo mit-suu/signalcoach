@@ -8,11 +8,11 @@ import type { SampleTranscript } from "@/types/api";
 import { ArrowRight } from "@/components/BrandMark";
 import { MIN_MY_TURNS, TRANSCRIPT_MAX_CHARS, detectSpeakers } from "@/lib/transcript";
 
-const STEPS = ["Tách các lượt nói", "Tìm tín hiệu người được phỏng vấn thả ra", "Đối chiếu câu hỏi tiếp theo của bạn", "Kiểm tra từng trích dẫn nguyên văn"];
+const STEPS = ["Tách các lượt nói", "Tìm các manh mối người kia nhắc tới", "Xem bạn có hỏi tiếp ngay sau đó không", "Kiểm tra lại từng câu trích"];
 
 const PLACEHOLDER = "Minh: Kể mình nghe lần gần nhất chị ghi chi tiêu là khi nào?\nLan: Tối qua. Mà dạo này mình hay quên…\nMinh: …";
 
-/** Transcript analysis form: paste, pick which speaker is "me", analyse (or try a sample). */
+/** Score a real interview: paste the dialogue, pick which speaker is "me", analyse (or try a sample). */
 export function TranscriptForm() {
   const router = useRouter();
   const [text, setText] = useState("");
@@ -70,33 +70,38 @@ export function TranscriptForm() {
   }
 
   return (
-    <div className="section grid-12 creator">
-      <div style={{ gridColumn: "1 / span 5" }}>
-        <h1 style={{ margin: "0 0 12px" }}>Phân tích bản ghi</h1>
-        <p className="muted">
-          Dán bản ghi một buổi phỏng vấn bạn đã làm thật. Agent chỉ ra những tín hiệu người được phỏng vấn đã thả ra, bạn có hỏi tiếp trong 2 câu hỏi ngay sau đó không, và câu hỏi nào nên viết lại — mỗi góp ý gắn với một nguyên tắc.
+    <div className="wrap page creator">
+      <div className="creator-intro">
+        <p className="eyebrow">Chấm buổi phỏng vấn thật</p>
+        <h1>Bạn đã bỏ lỡ gì trong một buổi phỏng vấn thật?</h1>
+        <p className="lead">
+          Dán lời thoại một buổi bạn đã phỏng vấn. SignalCoach tìm những chi tiết người kia nhắc thoáng qua (manh mối), xem bạn có hỏi tiếp trong 2 câu ngay sau đó không, và chỉ ra câu nào nên hỏi khác đi.
         </p>
-        <div className="privacy-note">
-          <strong>Trước khi dán</strong>
-          <span>Xoá tên thật, số điện thoại, công ty và chi tiết nhận dạng khác; và chỉ dùng bản ghi khi người được phỏng vấn đã đồng ý. Bản ghi được lưu trong lịch sử của bạn, bạn xoá được bất cứ lúc nào.</span>
+        <div className="notice notice-warn">
+          <div>
+            <b>Trước khi dán</b>
+            <p className="small">Xoá tên thật, số điện thoại, tên công ty và chi tiết nhận dạng khác. Chỉ dùng lời thoại khi người được phỏng vấn đã đồng ý. Kết quả được lưu trong lịch sử của bạn và xoá được bất cứ lúc nào.</p>
+          </div>
         </div>
-        <h6 className="muted" style={{ marginTop: 24 }}>Chưa có bản ghi?</h6>
         {samples.length > 0 && (
-          <button type="button" className="btn btn-secondary" onClick={() => loadSample(samples[0]!)} disabled={busy}>
-            Thử với bản ghi mẫu
-          </button>
+          <>
+            <span className="label">Chưa có lời thoại? Thử một buổi mẫu</span>
+            <div className="stack">
+              {samples.map((s) => (
+                <button key={s.id} type="button" className="example-card" onClick={() => loadSample(s)} disabled={busy}>
+                  <b>{s.title}</b>
+                  <span className="small">{s.description}</span>
+                </button>
+              ))}
+            </div>
+          </>
         )}
-        {samples.map((s) => (
-          <button key={s.id} type="button" className="example-card" onClick={() => loadSample(s)} disabled={busy}>
-            <strong>{s.title}</strong>
-            <span className="muted">{s.description}</span>
-          </button>
-        ))}
       </div>
 
-      <form className="creator-form" style={{ gridColumn: "7 / span 6" }} onSubmit={submit}>
+      <form className="card creator-form" onSubmit={submit}>
         <div className="field">
-          <label htmlFor="transcript">Bản ghi *</label>
+          <label htmlFor="transcript">Lời thoại *</label>
+          <span className="hint-line">Mỗi lượt một dòng, bắt đầu bằng tên và dấu hai chấm.</span>
           <textarea
             id="transcript"
             className="input transcript-input"
@@ -107,20 +112,20 @@ export function TranscriptForm() {
             disabled={busy}
             aria-describedby="transcript-count"
           />
-          <div id="transcript-count" className={`char-count ${tooLong ? "over" : "muted"}`}>
+          <div id="transcript-count" className={`char-count${tooLong ? " over" : ""}`}>
             {text.length.toLocaleString("vi-VN")} / {TRANSCRIPT_MAX_CHARS.toLocaleString("vi-VN")} ký tự
           </div>
         </div>
 
         {speakers.length >= 2 && (
           <fieldset className="speaker-pick" disabled={busy}>
-            <legend>Bạn là ai trong bản ghi?</legend>
+            <legend>Bạn là ai trong lời thoại?</legend>
             <div className="speaker-options">
               {speakers.map((s) => (
-                <label key={s.name} className={`speaker-option ${chosen?.name === s.name ? "on" : ""}`}>
+                <label key={s.name} className={`speaker-option${chosen?.name === s.name ? " on" : ""}`}>
                   <input type="radio" name="me" value={s.name} checked={chosen?.name === s.name} onChange={() => setMe(s.name)} />
                   <span>{s.name}</span>
-                  <span className="muted">{s.turns} lượt</span>
+                  <span className="small">{s.turns} lượt</span>
                 </label>
               ))}
             </div>
@@ -128,16 +133,16 @@ export function TranscriptForm() {
         )}
 
         <div className="field">
-          <label htmlFor="title">Tên bản ghi (tuỳ chọn)</label>
-          <input id="title" className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="Mặc định: tên người được phỏng vấn + ngày" disabled={busy} />
+          <label htmlFor="title">Tên buổi (không bắt buộc)</label>
+          <input id="title" className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="Mặc định: tên người được phỏng vấn và ngày" disabled={busy} />
         </div>
 
-        {hint && <div className="muted" style={{ fontSize: 13 }}>{hint}</div>}
+        {hint && <p className="small">{hint}</p>}
         {error && (
-          <div className="error-box" role="alert">
-            <span style={{ whiteSpace: "pre-line" }}>{error.message}</span>
+          <div className="error-banner error-row" role="alert">
+            <span className="pre-line">{error.message}</span>
             {error.status === 503 && (
-              <button type="button" className="btn btn-secondary" onClick={() => submit()}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => submit()}>
                 Thử lại
               </button>
             )}
@@ -145,20 +150,19 @@ export function TranscriptForm() {
         )}
 
         {busy ? (
-          <div className="progress-box" aria-live="polite">
+          <div className="notice" aria-live="polite">
             <div className="typing"><span /><span /><span /></div>
             <div>
-              <strong>{STEPS[step]}…</strong>
-              <div className="muted" style={{ fontSize: 13 }}>Thường mất 15–40 giây.</div>
+              <b>{STEPS[step]}…</b>
+              <p className="small">Thường mất 15–40 giây.</p>
             </div>
           </div>
         ) : (
-          <button className="btn btn-primary btn-wide" disabled={!canSubmit}>
-            Phân tích
-            <ArrowRight />
+          <button className="btn btn-primary" disabled={!canSubmit}>
+            Chấm buổi này <ArrowRight />
           </button>
         )}
-        <Link href="/history" className="muted back-link">Các bản ghi đã phân tích ở trang Lịch sử →</Link>
+        <Link href="/history" className="back-link">Các buổi đã chấm nằm ở trang Lịch sử →</Link>
       </form>
     </div>
   );

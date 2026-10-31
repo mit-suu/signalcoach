@@ -334,16 +334,30 @@ export function selfCheck(session: SessionDoc, review: ReviewOutput): { scorecar
   return { scorecard, log };
 }
 
-/** Fallback focus when the review returned none: based on what was missed most. */
+/** Plain Vietnamese names for question kinds, used in learner-facing fallback text. */
+const QUESTION_LABEL: Record<string, string> = {
+  leading: "gợi sẵn câu trả lời",
+  closed: "chỉ trả lời có/không",
+  vague: "hỏi chung chung",
+  double: "hai ý trong một câu",
+  future: "hỏi chuyện giả định",
+  bare_why: "chỉ hỏi “tại sao”",
+  over_talking: "nói nhiều hơn hỏi",
+};
+
+/** Fallback focus when the review returned none: based on what was missed most. Learner-facing, so plain words only. */
 function deriveFocus(signals: ScorecardSignal[], feedback: ScorecardFeedback[]): ScorecardFocus {
   const missed = signals.filter((s) => s.status === "missed" || s.status === "partial");
   const byKind: Record<string, ScorecardFocus> = {
-    emotion: { skill: "Đi theo tín hiệu cảm xúc", why: "Có chi tiết cảm xúc persona thả ra mà bạn chưa hỏi tiếp.", principleId: "P07" },
-    contradiction: { skill: "Truy những chỗ mâu thuẫn", why: "Persona có nói hai điều không khớp nhau mà bạn chưa hỏi lại.", principleId: "P10" },
-    trailing: { skill: "Dùng lại chính lời của họ", why: "Persona bỏ lửng một ý — trích lại lời họ để mời kể tiếp.", principleId: "P08" },
-    behavior: { skill: "Hỏi tiếp khi có người khác được nhắc đến", why: "Những người và thói quen được nhắc tới là chỗ đáng đào sâu.", principleId: "P09" },
+    emotion: { skill: "Hỏi tiếp khi người kia lộ cảm xúc", why: "Có lúc người dùng than hay ngập ngừng mà bạn chưa hỏi tiếp.", principleId: "P07" },
+    contradiction: { skill: "Hỏi lại những chỗ nói chưa khớp", why: "Người dùng có nói hai điều không khớp nhau mà bạn chưa hỏi lại.", principleId: "P10" },
+    trailing: { skill: "Dùng lại chính lời của họ", why: "Người dùng bỏ dở một ý. Nhắc lại đúng lời họ để mời họ kể tiếp.", principleId: "P08" },
+    behavior: { skill: "Hỏi tiếp khi có người khác được nhắc đến", why: "Những người và thói quen được nhắc tới là chỗ đáng hỏi sâu.", principleId: "P09" },
   };
   if (missed.length) return byKind[missed[0]!.kind]!;
-  if (feedback.length) return { skill: feedback[0]!.principleName, why: `Lỗi thường gặp nhất trong buổi này: câu hỏi ${feedback[0]!.type}.`, principleId: feedback[0]!.principleId };
-  return { skill: "Giữ nhịp hỏi sâu", why: "Buổi này bạn bắt tốt — lần sau thử đào tới lớp lý do thật của mỗi chi tiết.", principleId: "P06" };
+  if (feedback.length) {
+    const label = QUESTION_LABEL[feedback[0]!.type] ?? "câu hỏi chưa mở";
+    return { skill: feedback[0]!.principleName, why: `Lỗi gặp nhiều nhất trong buổi này: ${label}.`, principleId: feedback[0]!.principleId };
+  }
+  return { skill: "Giữ nhịp hỏi sâu", why: "Buổi này bạn hỏi tốt. Lần sau thử hỏi tới tận lý do thật đằng sau mỗi chi tiết.", principleId: "P06" };
 }

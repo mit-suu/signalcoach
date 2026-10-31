@@ -173,11 +173,18 @@ export interface ApiErrorBody {
   error: { code: string; message: string; details?: unknown };
 }
 
+/**
+ * In-session coaching hint (server/src/agent/hint.ts). Only a kind — never which signal:
+ * "dig" = the reply just mentioned something worth asking about, "open" = generic tip after weak questions.
+ * Optional: an older API omits it.
+ */
+export type TurnHint = { kind: "dig" | "open" } | null;
+
 /** SSE events from POST /api/sessions/:id/turns */
 export type TurnEvent =
   | { event: "accepted"; data: { index: number } }
   | { event: "delta"; data: { text: string } }
-  | { event: "done"; data: { turn: Turn; questionCount: number; signalsSurfaced: number; signalCount: number; endProposed: boolean; personaLeft: boolean } }
+  | { event: "done"; data: { turn: Turn; questionCount: number; signalsSurfaced: number; signalCount: number; endProposed: boolean; personaLeft: boolean; hint?: TurnHint } }
   | { event: "error"; data: { code: string; message: string; retryable: boolean } };
 
 /** Analysis of a real interview transcript (server/src/types/transcript.ts). Counts only — no score. */

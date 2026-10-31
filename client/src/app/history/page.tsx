@@ -4,15 +4,15 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import type { SessionSummary, TranscriptSummary } from "@/types/api";
-import { ArrowRight } from "@/components/BrandMark";
+import { ArrowRight, TrashIcon } from "@/components/BrandMark";
 import { Dialog } from "@/components/Dialog";
-import { SignalDots } from "@/components/SignalDots";
 import { ProgressChart } from "@/components/ProgressChart";
-import { STATUS_TEXT, fmtDate, pct } from "@/lib/labels";
+import { CLUE_EXPLAINER, fmtDate, pct, plain } from "@/lib/labels";
+import { unscoredReason } from "@/lib/progress";
 
 /**
- * S10/S11 — practice history (FR-11): progress chart (score + question mistakes), current focus, sessions table,
- * analysed real-interview transcripts, deletes with confirmation.
+ * Practice history: score chart (with plain reasons for unscored sessions), current focus, the
+ * sessions list, analysed real-interview transcripts, deletes with confirmation.
  */
 export default function HistoryPage() {
   const [rows, setRows] = useState<SessionSummary[] | null>(null);
@@ -85,7 +85,7 @@ export default function HistoryPage() {
     setBusy(true);
     try {
       await api.deleteTranscript(analysisToDelete.id);
-      setToast(`Đã xoá bản ghi ${analysisToDelete.title}`);
+      setToast(`Đã xoá ${analysisToDelete.title}`);
       setAnalysisToDelete(null);
       await load();
     } catch (e) {
@@ -99,7 +99,7 @@ export default function HistoryPage() {
     setBusy(true);
     try {
       const { deleted, analysesDeleted = 0 } = await api.deleteAllSessions();
-      setToast(analysesDeleted ? `Đã xoá ${deleted} buổi và ${analysesDeleted} bản ghi` : `Đã xoá ${deleted} buổi`);
+      setToast(analysesDeleted ? `Đã xoá ${deleted} buổi luyện và ${analysesDeleted} buổi đã chấm` : `Đã xoá ${deleted} buổi`);
       setDeleteAll(false);
       await load();
     } catch (e) {
@@ -109,193 +109,132 @@ export default function HistoryPage() {
     }
   }
 
-  if (error) return <div className="error-banner">{error}</div>;
-  if (!rows || !analyses) return <div className="state-msg muted">Đang tải…</div>;
+  if (error) return <div className="wrap"><div className="error-banner">{error}</div></div>;
+  if (!rows || !analyses) return <div className="wrap state-msg muted">Đang tải…</div>;
 
   if (rows.length === 0 && analyses.length === 0 && !sessionsError && !analysesError) {
-    // S10a — empty history
+    // Empty history
     return (
-      <div className="state-msg">
-        <h6 className="muted">Khả năng bắt tín hiệu</h6>
+      <div className="wrap state-msg">
+        <p className="eyebrow">Lịch sử luyện tập</p>
         <h2>Chưa có buổi nào. Điểm của bạn sẽ hiện ở đây sau buổi đầu tiên.</h2>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Link href="/" className="btn btn-primary">Bắt đầu buổi đầu tiên <ArrowRight size={16} /></Link>
-          <Link href="/transcripts/new" className="btn btn-secondary">Phân tích bản ghi thật</Link>
+        <p className="muted">{CLUE_EXPLAINER}</p>
+        <div className="cta">
+          <Link href="/#chon-nguoi" className="btn btn-primary">Bắt đầu buổi đầu tiên <ArrowRight size={16} /></Link>
+          <Link href="/transcripts/new" className="btn btn-secondary">Chấm một buổi phỏng vấn thật</Link>
         </div>
       </div>
     );
   }
 
   const deleteAllButton = (
-    <button className="btn btn-ghost" onClick={() => setDeleteAll(true)}>Xoá lịch sử</button>
+    <button className="btn-link" onClick={() => setDeleteAll(true)}>Xoá toàn bộ lịch sử</button>
   );
 
   return (
-    <>
-      {sessionsError && (
-        <div className="section">
-          <h3 style={{ margin: "0 0 12px" }}>Các buổi</h3>
-          <div className="error-banner">Không tải được các buổi luyện tập: {sessionsError}</div>
-        </div>
-      )}
+    <div className="wrap page history">
+      <h1>Lịch sử luyện tập</h1>
+      {sessionsError && <div className="error-banner">Chưa tải được các buổi luyện: {sessionsError}</div>}
       {rows.length > 0 && (
-      <>
-      <div className="section grid-12 hist-top">
-        <div style={{ gridColumn: "1 / span 7" }}>
-          <ProgressChart sessions={ended} />
-        </div>
-        <div style={{ gridColumn: "9 / span 4" }} className="focus-box">
-          <h6 className="muted" style={{ margin: 0 }}>Đang tập trung</h6>
-          {latestFocus ? (
-            <>
-              <div style={{ fontWeight: 800, fontSize: 18, margin: "6px 0 4px" }}>{latestFocus.skill}</div>
-              <div className="muted" style={{ fontSize: 13 }}>{latestFocus.why}</div>
-            </>
-          ) : (
-            <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>Hoàn thành một buổi để nhận trọng tâm cho lần sau.</div>
-          )}
-          {improvedOnNew && <div className="tag tag-accent-2" style={{ marginTop: 10 }}>↑ Tiến bộ ở kịch bản mới</div>}
-          <Link href="/" className="btn btn-primary" style={{ marginTop: 16, alignSelf: "flex-start" }}>Buổi mới <ArrowRight size={16} /></Link>
-        </div>
-      </div>
+        <>
+          <div className="hist-top">
+            <section className="card">
+              <ProgressChart sessions={ended} />
+            </section>
+            <aside className="card card-pop focus-box">
+              <span className="label">Đang tập trung</span>
+              {latestFocus ? (
+                <>
+                  <h3>{plain(latestFocus.skill)}</h3>
+                  <p className="muted">{plain(latestFocus.why)}</p>
+                </>
+              ) : (
+                <p className="muted">Luyện xong một buổi để biết buổi sau nên tập trung vào điều gì.</p>
+              )}
+              {improvedOnNew && <span className="tag tag-accent">Điểm tăng ở người dùng mới</span>}
+              <Link href="/#chon-nguoi" className="btn btn-primary">Luyện buổi mới <ArrowRight size={16} /></Link>
+            </aside>
+          </div>
 
-      <div className="section">
-        <div className="sc-row-head">
-          <h3 style={{ margin: 0 }}>Các buổi</h3>
-          {deleteAllButton}
-        </div>
-        <div className="hist-table-wrap">
-        <table className="table hist-table">
-          <thead>
-            <tr>
-              <th>Ngày</th>
-              <th>Kịch bản</th>
-              <th>Điểm</th>
-              <th>Tín hiệu</th>
-              <th>Trọng tâm từ buổi này</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td style={{ whiteSpace: "nowrap" }}>{fmtDate(r.startedAt)}</td>
-                <td>
-                  <Link href={r.status === "active" ? `/session/${r.id}` : `/session/${r.id}/scorecard`} style={{ color: "inherit" }}>
-                    <strong>{r.guideTitle}</strong>
-                  </Link>
-                  <span className="muted"> · {r.personaName}</span>
-                </td>
-                <td style={{ whiteSpace: "nowrap" }}>{r.score !== null ? `${pct(r.score)}%` : STATUS_TEXT[r.status]}</td>
-                <td>
-                  {r.counts ? (
-                    <SignalDots
-                      size={10}
-                      statuses={[
-                        ...Array<"caught">(r.counts.caught).fill("caught"),
-                        ...Array<"partial">(r.counts.partial).fill("partial"),
-                        ...Array<"missed">(r.counts.missed).fill("missed"),
-                        ...Array<"unsure">(r.counts.unsure).fill("unsure"),
-                        ...Array<"not_surfaced">(r.counts.not_surfaced).fill("not_surfaced"),
-                      ]}
-                    />
-                  ) : (
-                    <span className="muted">{r.questionCount} câu hỏi</span>
-                  )}
-                </td>
-                <td className="muted">{r.focus[0]?.skill ?? "—"}</td>
-                <td style={{ textAlign: "right" }}>
-                  <button className="btn btn-icon" aria-label="Xoá buổi" title="Xoá buổi" onClick={() => setToDelete(r)}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+          <section className="hist-section">
+            <div className="split">
+              <h2>Các buổi đã luyện</h2>
+              {deleteAllButton}
+            </div>
+            <ul className="hist-list">
+              {rows.map((r) => (
+                <li key={r.id} className="hist-row">
+                  <span className="hist-date">{fmtDate(r.startedAt)}</span>
+                  <div className="hist-main">
+                    <Link href={r.status === "active" ? `/session/${r.id}` : `/session/${r.id}/scorecard`}>
+                      <b>{r.guideTitle}</b>
+                    </Link>
+                    <span className="small">với {r.personaName}{r.focus[0] ? ` · Buổi sau: ${plain(r.focus[0].skill)}` : ""}</span>
+                  </div>
+                  <div className="hist-score">
+                    {r.score !== null ? <b>{pct(r.score)} điểm</b> : <span className="hist-reason">{unscoredReason(r)}</span>}
+                    <span className="small">{r.counts ? `Tìm được ${r.counts.caught}/${r.counts.total} manh mối` : `${r.questionCount} câu hỏi`}</span>
+                  </div>
+                  <button className="btn btn-icon" aria-label={`Xoá buổi ${fmtDate(r.startedAt)}`} title="Xoá buổi" onClick={() => setToDelete(r)}>
+                    <TrashIcon />
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
-      </div>
-      </>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
       )}
 
-      <div className="section">
-        <div className="sc-row-head">
-          <h3 style={{ margin: 0 }}>Bản ghi đã phân tích</h3>
-          {rows.length === 0 ? deleteAllButton : <Link href="/transcripts/new">Phân tích bản ghi mới</Link>}
+      <section className="hist-section">
+        <div className="split">
+          <h2>Buổi phỏng vấn thật đã chấm</h2>
+          {rows.length === 0 ? deleteAllButton : <Link href="/transcripts/new">Chấm thêm một buổi</Link>}
         </div>
         {analysesError ? (
-          <div className="error-banner">Không tải được các bản ghi đã phân tích: {analysesError}</div>
+          <div className="error-banner">Chưa tải được các buổi đã chấm: {analysesError}</div>
         ) : analyses.length === 0 ? (
-          <p className="muted" style={{ margin: 0 }}>
-            Chưa có bản ghi nào. <Link href="/transcripts/new">Dán bản ghi một buổi phỏng vấn thật</Link> để xem bạn đã bắt hay bỏ lỡ tín hiệu nào.
+          <p className="muted">
+            Chưa có buổi nào. <Link href="/transcripts/new">Dán lời thoại một buổi phỏng vấn thật</Link> để xem bạn tìm được hay bỏ lỡ manh mối nào.
           </p>
         ) : (
-          <div className="hist-table-wrap">
-            <table className="table hist-table">
-              <thead>
-                <tr>
-                  <th>Ngày</th>
-                  <th>Bản ghi</th>
-                  <th>Tín hiệu</th>
-                  <th>Câu nên viết lại</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {analyses.map((a) => (
-                  <tr key={a.id}>
-                    <td style={{ whiteSpace: "nowrap" }}>{fmtDate(a.createdAt)}</td>
-                    <td>
-                      <Link href={`/transcripts/${a.id}`} style={{ color: "inherit" }}>
-                        <strong>{a.title}</strong>
-                      </Link>
-                      <span className="muted"> · {a.turnCount} lượt</span>
-                    </td>
-                    <td>
-                      {a.counts.total > 0 ? (
-                        <SignalDots
-                          size={10}
-                          statuses={[
-                            ...Array<"caught">(a.counts.caught).fill("caught"),
-                            ...Array<"partial">(a.counts.partial).fill("partial"),
-                            ...Array<"missed">(a.counts.missed).fill("missed"),
-                          ]}
-                        />
-                      ) : (
-                        <span className="muted">—</span>
-                      )}
-                    </td>
-                    <td className="muted">{a.feedbackCount}</td>
-                    <td style={{ textAlign: "right" }}>
-                      <button className="btn btn-icon" aria-label="Xoá bản ghi" title="Xoá bản ghi" onClick={() => setAnalysisToDelete(a)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="hist-list">
+            {analyses.map((a) => (
+              <li key={a.id} className="hist-row">
+                <span className="hist-date">{fmtDate(a.createdAt)}</span>
+                <div className="hist-main">
+                  <Link href={`/transcripts/${a.id}`}><b>{a.title}</b></Link>
+                  <span className="small">{a.turnCount} lượt nói</span>
+                </div>
+                <div className="hist-score">
+                  <span className="small">{a.counts.total > 0 ? `Tìm được ${a.counts.caught}/${a.counts.total} manh mối` : "Không thấy manh mối nào"}</span>
+                  <span className="small">{a.feedbackCount} câu nên hỏi khác</span>
+                </div>
+                <button className="btn btn-icon" aria-label={`Xoá ${a.title}`} title="Xoá" onClick={() => setAnalysisToDelete(a)}>
+                  <TrashIcon />
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
-      </div>
+      </section>
 
-      {toast && <div className="toast">{toast}</div>}
+      {toast && <div className="toast" role="status">{toast}</div>}
 
       {toDelete && (
         <Dialog title={`Xoá buổi ${fmtDate(toDelete.startedAt)} · ${toDelete.guideTitle}?`} confirmLabel="Xoá" onConfirm={confirmDelete} onCancel={() => setToDelete(null)} busy={busy} danger>
-          Hội thoại và bảng đánh giá của buổi này sẽ bị xoá khỏi lịch sử của bạn. Không thể hoàn tác.
+          Cuộc trò chuyện và bảng đánh giá của buổi này sẽ bị xoá khỏi lịch sử. Không thể khôi phục.
         </Dialog>
       )}
       {analysisToDelete && (
-        <Dialog title={`Xoá bản ghi ${analysisToDelete.title}?`} confirmLabel="Xoá" onConfirm={confirmDeleteAnalysis} onCancel={() => setAnalysisToDelete(null)} busy={busy} danger>
-          Bản ghi và phân tích này sẽ bị xoá. Không thể hoàn tác.
+        <Dialog title={`Xoá “${analysisToDelete.title}”?`} confirmLabel="Xoá" onConfirm={confirmDeleteAnalysis} onCancel={() => setAnalysisToDelete(null)} busy={busy} danger>
+          Lời thoại và kết quả chấm của buổi này sẽ bị xoá. Không thể khôi phục.
         </Dialog>
       )}
       {deleteAll && (
         <Dialog title="Xoá toàn bộ lịch sử?" confirmLabel="Xoá tất cả" onConfirm={confirmDeleteAll} onCancel={() => setDeleteAll(false)} busy={busy} danger>
-          {rows.length} buổi cùng hội thoại và bảng đánh giá, và {analyses.length} bản ghi đã phân tích sẽ bị xoá khỏi lịch sử của bạn (cả trên tài khoản). Không thể hoàn tác.
+          {rows.length} buổi luyện và {analyses.length} buổi phỏng vấn thật đã chấm sẽ bị xoá (cả trên tài khoản). Không thể khôi phục.
         </Dialog>
       )}
-    </>
+    </div>
   );
 }

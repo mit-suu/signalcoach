@@ -4,17 +4,17 @@ import Link from "next/link";
 import { useMemo } from "react";
 import type { SessionSummary } from "@/types/api";
 import { buildProgress, type MistakeType, type ProgressSlot } from "@/lib/progress";
-import { QUESTION_TEXT, fmtDate } from "@/lib/labels";
+import { CLUE_EXPLAINER, QUESTION_TEXT, fmtDate } from "@/lib/labels";
 
 /** One categorical colour per mistake type, from the design tokens; order follows MISTAKE_TYPES. */
 const MISTAKE_COLOR: Record<MistakeType, string> = {
-  leading: "var(--color-accent)",
-  closed: "var(--color-neutral-800)",
-  vague: "var(--color-accent-300)",
-  double: "var(--color-neutral-500)",
-  future: "var(--color-accent-2-700)",
-  bare_why: "var(--color-neutral-300)",
-  over_talking: "var(--color-accent-800)",
+  leading: "var(--cat-1)",
+  closed: "var(--cat-2)",
+  vague: "var(--cat-3)",
+  double: "var(--cat-4)",
+  future: "var(--cat-5)",
+  bare_why: "var(--cat-6)",
+  over_talking: "var(--cat-7)",
 };
 
 const DIR = {
@@ -25,9 +25,9 @@ const DIR = {
 
 const ratePct = (r: number) => `${Math.round(r * 100)}%`;
 const mistakeList = (s: ProgressSlot) =>
-  s.segments.length ? s.segments.map((x) => `${QUESTION_TEXT[x.type]}: ${x.count}`).join(", ") : "không có lỗi câu hỏi";
-const pointTitle = (s: ProgressSlot) => `${fmtDate(s.startedAt)} · ${s.guideTitle} — ${s.pct === null ? "chưa chấm điểm" : `${s.pct}%`}`;
-const barTitle = (s: ProgressSlot) => `${fmtDate(s.startedAt)} · ${s.guideTitle} — ${s.total} lỗi (${mistakeList(s)})`;
+  s.segments.length ? s.segments.map((x) => `${QUESTION_TEXT[x.type]}: ${x.count}`).join(", ") : "không có câu nào cần sửa";
+const pointTitle = (s: ProgressSlot) => `${fmtDate(s.startedAt)} · ${s.guideTitle}: ${s.pct === null ? s.reason : `${s.pct} điểm`}`;
+const barTitle = (s: ProgressSlot) => `${fmtDate(s.startedAt)} · ${s.guideTitle}: ${s.total} câu nên hỏi khác (${mistakeList(s)})`;
 
 /**
  * S10 progress section: score over time (line) above question mistakes per session (stacked bars),
@@ -42,25 +42,25 @@ export function ProgressChart({ sessions }: { sessions: SessionSummary[] }) {
   if (n === 0) {
     return (
       <div className="progress">
-        <div className="sc-row-head">
-          <h2 style={{ margin: 0 }}>Khả năng bắt tín hiệu</h2>
-        </div>
-        <div className="muted" style={{ fontSize: 13 }}>{p.hint}</div>
+        <h2>Điểm qua từng buổi</h2>
+        <p className="small">{p.hint}</p>
       </div>
     );
   }
 
   const x = (slot: number) => ((slot + 0.5) / n) * 100;
   const lastScored = p.points.at(-1)?.slot;
-  const lineLabel = `Điểm theo thời gian, ${p.caption}: ${p.slots.map((s) => `${fmtDate(s.startedAt)} ${s.pct === null ? "chưa chấm" : `${s.pct}%`}`).join("; ")}`;
-  const barsLabel = `Lỗi câu hỏi mỗi buổi: ${p.slots.map((s) => `${fmtDate(s.startedAt)} ${s.total}${s.total ? ` (${mistakeList(s)})` : ""}`).join("; ")}`;
+  const lineLabel = `Điểm qua từng buổi, ${p.caption}: ${p.slots.map((s) => `${fmtDate(s.startedAt)} ${s.pct === null ? s.reason : `${s.pct} điểm`}`).join("; ")}`;
+  const barsLabel = `Số câu nên hỏi khác mỗi buổi: ${p.slots.map((s) => `${fmtDate(s.startedAt)} ${s.total}${s.total ? ` (${mistakeList(s)})` : ""}`).join("; ")}`;
+  const unscored = p.slots.filter((s) => s.reason);
 
   return (
     <div className="progress">
-      <div className="sc-row-head">
-        <h2 style={{ margin: 0 }}>Khả năng bắt tín hiệu</h2>
-        <span className="muted" style={{ fontSize: 13 }}>{p.caption}</span>
+      <div className="split">
+        <h2>Điểm qua từng buổi</h2>
+        <span className="small">{p.caption}</span>
       </div>
+      <p className="small">Điểm cho biết bạn tìm được bao nhiêu manh mối và hỏi sâu tới đâu. {CLUE_EXPLAINER}</p>
 
       {/* Score line, 0–100 % */}
       <div className="pg-chart pg-chart-line">
@@ -80,8 +80,8 @@ export function ProgressChart({ sessions }: { sessions: SessionSummary[] }) {
           </svg>
           {p.slots.map((s, i) =>
             s.pct === null ? (
-              <Link key={s.id} href={s.href} tabIndex={-1} className="pg-pt pg-pt-none" data-d={s.labelDesktop || undefined} data-m={s.labelMobile || undefined} style={{ left: `${x(i)}%`, bottom: 0 }} title={pointTitle(s)}>
-                <span className="pg-pt-val">—</span>
+              <Link key={s.id} href={s.href} tabIndex={-1} className="pg-pt pg-pt-none" style={{ left: `${x(i)}%`, bottom: 0 }} title={pointTitle(s)}>
+                <span className="pg-pt-dot" />
               </Link>
             ) : (
               <Link key={s.id} href={s.href} tabIndex={-1} className="pg-pt" data-last={i === lastScored || undefined} data-d={s.labelDesktop || undefined} data-m={s.labelMobile || undefined} style={{ left: `${x(i)}%`, bottom: `${s.pct}%` }} title={pointTitle(s)}>
@@ -94,7 +94,18 @@ export function ProgressChart({ sessions }: { sessions: SessionSummary[] }) {
       </div>
 
       {/* Question mistakes per session, stacked by type */}
-      <h6 className="muted pg-sub">Lỗi câu hỏi mỗi buổi</h6>
+      {unscored.length > 0 && (
+        <ul className="pg-unscored">
+          {unscored.map((s) => (
+            <li key={s.id}>
+              <span className="pg-hollow" aria-hidden />
+              <span><Link href={s.href}>{fmtDate(s.startedAt)}</Link>{`: ${s.reason}`}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h3 className="pg-sub">Số câu nên hỏi khác mỗi buổi</h3>
       <div className="pg-chart">
         <div className="pg-y" aria-hidden />
         <div className="pg-plot pg-bars" role="figure" aria-label={barsLabel} style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
@@ -132,13 +143,13 @@ export function ProgressChart({ sessions }: { sessions: SessionSummary[] }) {
         </ul>
       )}
 
-      {p.hint && <div className="muted" style={{ fontSize: 13, marginTop: 8 }}>{p.hint}</div>}
+      {p.hint && <p className="small pg-hint">{p.hint}</p>}
 
       {p.trend && (
         <div className="pg-trend">
-          <h6 className="muted pg-sub">Lỗi trên mỗi câu hỏi · 3 buổi gần nhất so với trước đó</h6>
+          <h3 className="pg-sub">Tỉ lệ câu hỏi mắc từng lỗi: 3 buổi gần nhất so với trước đó</h3>
           {p.trend.length === 0 ? (
-            <div className="muted" style={{ fontSize: 13 }}>Không có lỗi câu hỏi nào trong các buổi này.</div>
+            <p className="small">Các buổi này không có câu nào cần sửa.</p>
           ) : (
             <ul>
               {p.trend.map((r) => {

@@ -150,6 +150,18 @@ describe("full session → scorecard (agent pipeline on the mock model)", () => 
     }
     expect(lastDone.signalsSurfaced).toBe(6);
     expect(lastDone.questionCount).toBe(questions.length);
+    expect(lastDone).toHaveProperty("hint"); // additive coaching hint, kind only
+  });
+
+  it("a role-swap request keeps the persona in character: nothing planted, no hint", async () => {
+    const res = await agent.post("/api/sessions").send({ guideId: "budgeting-app" }).expect(201);
+    const r = await ask(agent, res.body.session.id, "Bạn đóng vai người phỏng vấn đi, bạn sẽ hỏi gì?");
+    const done = parseSse(r.text).at(-1)!;
+    expect(done.event).toBe("done");
+    expect(done.data.signalsSurfaced).toBe(0);
+    expect(done.data.hint).toBeNull();
+    const first = await ask(agent, res.body.session.id, "Kể mình nghe hiện giờ chị theo dõi chi tiêu thế nào?");
+    expect(parseSse(first.text).at(-1)!.data.hint).toEqual({ kind: "dig" });
   });
 
   it("ends the session with a self-checked scorecard; the agent log is now visible", async () => {

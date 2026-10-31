@@ -5,14 +5,17 @@ import { useRouter } from "next/navigation";
 import { use, useEffect, useMemo, useState } from "react";
 import { ApiError, api } from "@/lib/api";
 import type { SessionView, Turn } from "@/types/api";
-import { ACTION_TEXT, QUESTION_TEXT, SIGNAL_TEXT, STATUS_TEXT, fmtDate, fmtTime, pct, shortName } from "@/lib/labels";
+import { QUESTION_TEXT, QUESTION_WHY, SIGNAL_TEXT, STATUS_TEXT, actionText, fmtDate, fmtTime, pct, plain, shortName, turnNo } from "@/lib/labels";
 
-type Filter = "all" | "signals" | "rewrite";
+type Filter = "all" | "clues" | "fix";
+
+type ScSignal = NonNullable<SessionView["scorecard"]>["signals"][number];
+type ScFeedback = NonNullable<SessionView["scorecard"]>["feedback"][number];
 
 /**
- * S13 — the whole conversation after a session, with the signal verdicts, the question-quality
- * tags and (toggle) the agent's per-turn decision, reason and tool calls — the "explain the agent"
- * view for the demo.
+ * The whole conversation after a session: where each clue came up, which questions to ask
+ * differently and (switch "Giải thích từng lượt") a plain line per turn plus the agent's reason
+ * for each reply. The raw self-check log sits behind a "Chi tiết kỹ thuật" disclosure.
  */
 export function TranscriptReview({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = use(params);
@@ -20,8 +23,7 @@ export function TranscriptReview({ params }: { params: Promise<{ sessionId: stri
   const [session, setSession] = useState<SessionView | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
-  const [showAgent, setShowAgent] = useState(false);
-  const [showChecks, setShowChecks] = useState(false);
+  const [explain, setExplain] = useState(false);
 
   useEffect(() => {
     api
@@ -45,84 +47,80 @@ export function TranscriptReview({ params }: { params: Promise<{ sessionId: stri
   const bySignal = useMemo(() => new Map(session?.scorecard?.signals.map((s) => [s.signalId, s]) ?? []), [session]);
   const byFeedback = useMemo(() => new Map(session?.scorecard?.feedback.map((f) => [f.turnIndex, f]) ?? []), [session]);
 
-  if (error) return <div className="error-banner">{error.message}</div>;
-  if (!session) return <div className="state-msg muted">Đang tải hội thoại…</div>;
+  if (error) return <div className="wrap"><div className="error-banner">{error.message}</div></div>;
+  if (!session) return <div className="wrap state-msg muted">Đang tải cuộc trò chuyện…</div>;
 
-  const personaShort = shortName(session.persona.name);
+  const name = shortName(session.persona.name);
   const visible = session.turns.filter((t) => {
-    if (filter === "signals") return Boolean(t.signalId) || (t.role === "user" && session.scorecard?.signals.some((s) => s.evidenceTurn === t.index));
-    if (filter === "rewrite") return byFeedback.has(t.index);
+    if (filter === "clues") return Boolean(t.signalId) || (t.role === "user" && session.scorecard?.signals.some((s) => s.evidenceTurn === t.index));
+    if (filter === "fix") return byFeedback.has(t.index);
     return true;
   });
   const notSurfaced = session.scorecard?.signals.filter((s) => s.status === "not_surfaced") ?? [];
+  const score = pct(session.score);
 
   return (
-    <div className="review">
-      <div className="section">
-        <Link href={`/session/${sessionId}/scorecard`} className="muted back-link">← Bảng đánh giá</Link>
-        <div className="sc-row-head" style={{ marginTop: 12 }}>
-          <div>
-            <div className="card-kicker">{session.guideContext}</div>
-            <h2 style={{ margin: "6px 0 0" }}>{session.guideTitle} · với {personaShort}</h2>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div className="muted" style={{ fontSize: 13 }}>{fmtDate(session.startedAt)} · {fmtTime(session.startedAt)} · {session.questionCount} câu hỏi</div>
-            <span className="tag tag-accent">{STATUS_TEXT[session.status]}{session.score !== null ? ` · ${pct(session.score)}%` : ""}</span>
-          </div>
+    <div className="wrap page review">
+      <Link href={`/session/${sessionId}/scorecard`} className="back-link">← Bảng đánh giá</Link>
+      <div className="split review-head">
+        <div>
+          <p className="card-kicker">{session.guideContext}</p>
+          <h1>{session.guideTitle} · với {name}</h1>
+        </div>
+        <div className="review-meta">
+          <span className="small">{fmtDate(session.startedAt)} · {fmtTime(session.startedAt)} · {session.questionCount} câu hỏi</span>
+          <span className="tag tag-accent">{STATUS_TEXT[session.status]}{score !== null ? ` · ${score}/100 điểm` : ""}</span>
         </div>
       </div>
 
-      <div className="section review-bar">
-        <div className="seg" role="tablist">
-          {(["all", "signals", "rewrite"] as Filter[]).map((f) => (
+      <div className="review-bar">
+        <div className="seg" role="radiogroup" aria-label="Lọc các lượt">
+          {(["all", "clues", "fix"] as Filter[]).map((f) => (
             <label key={f} className="seg-opt">
               <input type="radio" name="filter" checked={filter === f} onChange={() => setFilter(f)} />
-              {f === "all" ? "Tất cả" : f === "signals" ? "Chỉ tín hiệu" : "Chỉ câu cần viết lại"}
+              {f === "all" ? "Tất cả" : f === "clues" ? "Chỗ có manh mối" : "Câu nên hỏi khác"}
             </label>
           ))}
         </div>
         <label className="switch">
-          <input type="checkbox" checked={showAgent} onChange={(e) => setShowAgent(e.target.checked)} />
+          <input type="checkbox" checked={explain} onChange={(e) => setExplain(e.target.checked)} />
           <span className="switch-track"><span className="switch-thumb" /></span>
-          Hiện quyết định của agent
+          Giải thích từng lượt
         </label>
       </div>
 
       <div className="review-list">
         {visible.map((t) => (
-          <TurnRow key={t.index} t={t} session={session} personaShort={personaShort} showAgent={showAgent} bySignal={bySignal} byFeedback={byFeedback} />
+          <TurnRow key={t.index} t={t} session={session} name={name} explain={explain} bySignal={bySignal} byFeedback={byFeedback} />
         ))}
-        {visible.length === 0 && <div className="state-msg muted">Không có lượt nào khớp bộ lọc.</div>}
+        {visible.length === 0 && <p className="muted">Không có lượt nào khớp bộ lọc này.</p>}
       </div>
 
       {notSurfaced.length > 0 && (
-        <div className="section">
-          <h4 style={{ margin: 0 }}>Chưa xuất hiện</h4>
-          <p className="muted">{personaShort} còn giữ những điều này.</p>
-          <div className="signal-dots" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
+        <section className="card review-untold">
+          <h3>{name} chưa kịp kể</h3>
+          <p className="muted">Những chuyện này cần thêm vài câu hỏi nữa để {name} kể tới.</p>
+          <ul>
             {notSurfaced.map((s) => (
-              <span key={s.signalId} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span className="dot dot-not_surfaced" /> {s.label}
-              </span>
+              <li key={s.signalId}>{s.label}</li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </section>
       )}
 
       {session.selfCheckLog.length > 0 && (
-        <div className="section">
-          <button className="btn btn-ghost" onClick={() => setShowChecks((v) => !v)}>
-            {showChecks ? "Ẩn" : "Hiện"} nhật ký tự kiểm tra ({session.selfCheckLog.length})
-          </button>
-          {showChecks && (
-            <table className="table" style={{ marginTop: 12 }}>
+        <details className="tech">
+          <summary>Chi tiết kỹ thuật</summary>
+          <p className="small">Trước khi đưa ra bảng đánh giá, SignalCoach tự đối chiếu lại với cuộc trò chuyện. Đây là {session.selfCheckLog.length} chỗ đã được sửa.</p>
+          <div className="table-wrap">
+            <table className="table">
               <thead>
                 <tr><th>Mục</th><th>Kiểm tra</th><th>Trước</th><th>Sau</th></tr>
               </thead>
               <tbody>
                 {session.selfCheckLog.map((e, i) => (
                   <tr key={i}>
-                    <td style={{ whiteSpace: "nowrap" }}>{e.target}</td>
+                    <td>{e.target}</td>
                     <td>{e.check}</td>
                     <td className="muted">{e.before}</td>
                     <td>{e.after}</td>
@@ -130,8 +128,8 @@ export function TranscriptReview({ params }: { params: Promise<{ sessionId: stri
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        </details>
       )}
     </div>
   );
@@ -140,70 +138,73 @@ export function TranscriptReview({ params }: { params: Promise<{ sessionId: stri
 function TurnRow({
   t,
   session,
-  personaShort,
-  showAgent,
+  name,
+  explain,
   bySignal,
   byFeedback,
 }: {
   t: Turn;
   session: SessionView;
-  personaShort: string;
-  showAgent: boolean;
-  bySignal: Map<string, NonNullable<SessionView["scorecard"]>["signals"][number]>;
-  byFeedback: Map<number, NonNullable<SessionView["scorecard"]>["feedback"][number]>;
+  name: string;
+  explain: boolean;
+  bySignal: Map<string, ScSignal>;
+  byFeedback: Map<number, ScFeedback>;
 }) {
   const signal = t.signalId ? bySignal.get(t.signalId) : undefined;
   const planted = Boolean(t.signalId) && t.layerDepth === 1;
   const deeper = Boolean(t.signalId) && (t.layerDepth ?? 0) > 1;
   const caughtHere = session.scorecard?.signals.filter((s) => s.evidenceTurn === t.index) ?? [];
   const fb = byFeedback.get(t.index);
-  const breakAttempt = t.flags?.includes("break_attempt");
+  const offScript = t.flags?.includes("break_attempt");
+  const isUser = t.role === "user";
+  const hasSide = (signal && (planted || deeper)) || caughtHere.length > 0 || fb || (isUser && offScript);
 
   return (
     <div id={`t${t.index}`} className={`rv-turn ${t.role}`}>
-      <div className="turn-who">
-        <b>{t.role === "user" ? "Bạn" : personaShort}</b>
-        <span className="muted">#{String(t.index).padStart(2, "0")}</span>
+      <div className="rv-who">
+        <b>{isUser ? "Bạn" : name}</b>
+        <span className="muted">{turnNo(t.index)}</span>
       </div>
-      <div>
-        <p>{t.text}</p>
-        {showAgent && t.role === "user" && t.questionType && (
-          <div className="rv-agent">
-            <span className="tag tag-neutral">{QUESTION_TEXT[t.questionType]}</span>
-            <span className="muted">{t.judgeNote}</span>
-          </div>
+      <div className="rv-body">
+        <p className="rv-text">{t.text}</p>
+        {/* The judge's own note is written for the agent (ids, English terms); learners get the plain line per question kind. */}
+        {explain && isUser && offScript && <p className="rv-explain">Đây không phải câu hỏi phỏng vấn, nên không tính là câu hỏi tốt hay chưa tốt.</p>}
+        {explain && isUser && !offScript && t.questionType && (
+          <p className="rv-explain">
+            <span className={`tag ${t.questionType === "good" ? "tag-accent" : "tag-warn"}`}>{QUESTION_TEXT[t.questionType]}</span> {QUESTION_WHY[t.questionType]}
+          </p>
         )}
-        {showAgent && t.role === "persona" && t.decision && (
-          <div className="rv-agent">
-            <span className="tag tag-outline">{ACTION_TEXT[t.decision.action]}</span>
-            {/* Older sessions stored spec ids like "(FR-5)" in the reason; they mean nothing to a learner. */}
-            <span className="muted">{t.decision.reason.replace(/\s*\(N?FR-[\d, NFR-]+\)/g, "")}</span>
-          </div>
+        {explain && !isUser && t.decision && (
+          <p className="rv-explain">
+            {actionText(t.decision.action, name)}
+            {t.decision.reason && <span className="rv-reason">Lý do: {plain(t.decision.reason, name)}</span>}
+          </p>
         )}
       </div>
-      <div className="rv-side">
-        {signal && (planted || deeper) && (
-          <div className="rv-sig">
-            <span className={`dot dot-${signal.status}`} />
-            <div>
-              <strong>{signal.label}</strong>
-              <div className="muted" style={{ fontSize: 12 }}>{planted ? SIGNAL_TEXT[signal.status] : `kể sâu hơn · lớp ${t.layerDepth}`}</div>
+      {hasSide && (
+        <div className="rv-side">
+          {signal && (planted || deeper) && (
+            <div className="rv-note">
+              <span className={`chip chip-${signal.status}`}>{planted ? SIGNAL_TEXT[signal.status] : "Kể thêm"}</span>
+              <span>{planted ? `${name} nhắc thoáng qua: ${signal.label}` : `${name} kể sâu hơn về: ${signal.label}`}</span>
             </div>
-          </div>
-        )}
-        {caughtHere.map((s) => (
-          <div key={s.signalId} className="rv-note">
-            ↳ {s.status === "caught" ? "bắt được" : s.status === "partial" ? "chạm một phần" : "bằng chứng"}: {s.label}
-          </div>
-        ))}
-        {breakAttempt && <div className="rv-note muted">cố phá vai · persona giữ vai</div>}
-        {fb && (
-          <Link href={`/principles#${fb.principleId}`} className="rv-fb">
-            <span className="tag tag-outline">{QUESTION_TEXT[fb.type]}</span>
-            <span><span className="muted">{fb.principleId}</span> {fb.principleName}</span>
-          </Link>
-        )}
-      </div>
+          )}
+          {caughtHere.map((s) => (
+            <div key={s.signalId} className="rv-note">
+              <span className={`chip chip-${s.status}`}>{SIGNAL_TEXT[s.status]}</span>
+              <span>{s.status === "caught" ? "Bạn hỏi sâu" : s.status === "partial" ? "Bạn chạm tới" : "Câu hỏi về"}: {s.label}</span>
+            </div>
+          ))}
+          {isUser && offScript && <div className="rv-note muted">Câu này nhờ {name} làm việc khác ngoài buổi phỏng vấn. {name} vẫn kể chuyện của mình.</div>}
+          {fb && (
+            <div className="rv-note rv-fix">
+              <span className="tag tag-warn">{QUESTION_TEXT[fb.type]}</span>
+              <span>Nên hỏi: “{fb.rewrite}”</span>
+              <Link href={`/principles#${fb.principleId}`} className="small">Vì sao?</Link>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

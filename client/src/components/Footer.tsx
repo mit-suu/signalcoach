@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandMark } from "./BrandMark";
 
-// Phòng luyện tập live (/session/[id]) chiếm trọn chiều cao màn hình — không chèn footer vào đó.
+// The live interview room (/session/[id]) fills the screen — no footer there.
 const isSessionRoom = (p: string) => /^\/session\/[^/]+\/?$/.test(p);
 
 export function Footer() {
@@ -13,14 +13,13 @@ export function Footer() {
 
   return (
     <footer className="app-footer">
-      <div className="footer-brand">
+      <div className="wrap">
         <Link href="/" className="brand">
-          <BrandMark size={24} />
+          <BrandMark size={22} />
           SignalCoach
         </Link>
-        <p className="muted">Luyện nghe những điều người dùng suýt nói ra.</p>
+        <span>— luyện phỏng vấn người dùng · © 2026</span>
       </div>
-      <p className="footer-meta muted">© 2026 SignalCoach</p>
     </footer>
   );
 }

@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { Principle } from "@/types/api";
-import { QUESTION_TEXT } from "@/lib/labels";
+import { CheckIcon, CrossIcon } from "@/components/BrandMark";
+import { QUESTION_TEXT, plain } from "@/lib/labels";
 
-/** S12 — interviewing principles library (grounds every feedback comment, FR-7). */
+/** Interviewing principles — every scorecard comment points to one of these. */
 export default function PrinciplesPage() {
   const [items, setItems] = useState<Principle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,41 +25,44 @@ export default function PrinciplesPage() {
     }
   }, [items]);
 
-  if (error) return <div className="error-banner">{error}</div>;
-  if (!items) return <div className="state-msg muted">Đang tải…</div>;
+  if (error) return <div className="wrap"><div className="error-banner">{error}</div></div>;
+  if (!items) return <div className="wrap state-msg muted">Đang tải…</div>;
 
   return (
-    <>
-      <div className="section">
-        <h1 style={{ margin: 0 }}>Nguyên tắc phỏng vấn</h1>
-        <p className="muted" style={{ margin: "8px 0 0", maxWidth: 640 }}>
-          Mọi góp ý trên bảng đánh giá đều dẫn về một trong {items.length} nguyên tắc này — agent tra cứu thư viện thay vì tự nghĩ ra lời khuyên.
-        </p>
-      </div>
-      {items.map((p) => (
-        <div key={p.id} id={p.id} className="section grid-12 principle">
-          <div style={{ gridColumn: "1 / span 5" }}>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <span className="tag tag-outline">{p.id}</span>
-              {p.appliesTo.map((t) => (
-                <span key={t} className="tag tag-neutral">{QUESTION_TEXT[t]}</span>
-              ))}
+    <div className="wrap page principles">
+      <p className="eyebrow">Nguyên tắc hỏi</p>
+      <h1>{items.length} nguyên tắc của một buổi phỏng vấn tốt</h1>
+      <p className="lead">Mỗi góp ý trong bảng đánh giá đều dựa trên một trong các nguyên tắc dưới đây, kèm một câu nên tránh và một câu nên hỏi.</p>
+      <ol className="principle-list">
+        {items.map((p, i) => (
+          <li key={p.id} id={p.id} className="card principle">
+            <div className="principle-head">
+              <span className="num">{i + 1}</span>
+              <div>
+                <h2>{plain(p.name)}</h2>
+                <p className="muted">{plain(p.summary)}</p>
+                {p.appliesTo.length > 0 && (
+                  <div className="row">
+                    {p.appliesTo.map((t) => (
+                      <span key={t} className="tag tag-neutral">{QUESTION_TEXT[t]}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-            <h3 style={{ margin: "10px 0" }}>{p.name}</h3>
-            <p className="muted">{p.summary}</p>
-          </div>
-          <div style={{ gridColumn: "7 / span 6", display: "grid", gap: 12 }}>
-            <div>
-              <h6 className="muted">Thay vì</h6>
-              <p style={{ textDecoration: "line-through", margin: 0 }}>{p.badExample}</p>
+            <div className="principle-examples">
+              <div className="ans bad">
+                <span className="ans-label"><CrossIcon /> Thay vì</span>
+                <p>{p.badExample}</p>
+              </div>
+              <div className="ans good">
+                <span className="ans-label"><CheckIcon /> Thử hỏi</span>
+                <p>{p.goodExample}</p>
+              </div>
             </div>
-            <div>
-              <h6 style={{ color: "var(--color-accent-700)" }}>Thử hỏi</h6>
-              <p style={{ margin: 0 }}>{p.goodExample}</p>
-            </div>
-          </div>
-        </div>
-      ))}
-    </>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }

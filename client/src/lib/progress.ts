@@ -18,8 +18,23 @@ export const TREND_MIN_SESSIONS = TREND_RECENT + 1;
 export const X_LABELS_DESKTOP = 10;
 export const X_LABELS_MOBILE = 5;
 
-export const EMPTY_TEXT = "Hoàn thành một buổi để thấy tiến bộ.";
-export const ONE_SESSION_TEXT = "Thêm một buổi để thấy tiến bộ.";
+export const EMPTY_TEXT = "Luyện xong một buổi là bạn sẽ thấy điểm ở đây.";
+export const ONE_SESSION_TEXT = "Luyện thêm một buổi nữa để so với lần này.";
+
+/** Why a session has no score, in plain words — shown instead of a bare "—". */
+export function unscoredReason(s: Pick<SessionSummary, "status" | "score" | "counts">): string | null {
+  if (s.score !== null) return null;
+  switch (s.status) {
+    case "active":
+      return "Buổi này chưa xong";
+    case "insufficient":
+      return "Buổi ngắn quá, chưa chấm điểm";
+    case "incomplete":
+      return "Dừng sớm nên chưa chấm điểm";
+    default:
+      return s.counts ? "Buổi này chưa chấm được điểm" : "Chưa có bảng đánh giá. Mở buổi này để thử lại";
+  }
+}
 
 export interface ProgressSlot {
   id: string;
@@ -28,6 +43,8 @@ export interface ProgressSlot {
   guideTitle: string;
   /** Score in whole percent, or null when the session wasn't scored. */
   pct: number | null;
+  /** Plain reason when pct is null. */
+  reason: string | null;
   segments: { type: MistakeType; count: number }[];
   total: number;
   /** Show the x label at desktop / mobile widths. */
@@ -89,6 +106,7 @@ export function buildProgress(sessions: SessionSummary[]): Progress {
       startedAt: s.startedAt,
       guideTitle: s.guideTitle,
       pct: toPct(s.score),
+      reason: unscoredReason(s),
       segments,
       total: segments.reduce((a, x) => a + x.count, 0),
       labelDesktop: showLabel(i, n, X_LABELS_DESKTOP),

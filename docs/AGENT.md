@@ -37,7 +37,8 @@ câu hỏi mới ─▶ ① JUDGE (LLM, JSON) ─▶ ② STATE MACHINE (code) �
 8. **Gợi ý kết thúc** một lần duy nhất khi mọi tín hiệu đã ra, cửa sổ đã đóng và ≥ 8 câu hỏi.
 
 Mọi quyết định được ghi `{action, reason, signalId}` cùng tool call trên lượt persona, và hiển thị ở
-trang **Toàn bộ hội thoại → "Hiện quyết định của agent"**.
+trang **Xem lại toàn bộ cuộc trò chuyện → "Giải thích từng lượt"** (một câu thường cho việc persona làm,
+kèm lý do của agent đã lọc thuật ngữ nội bộ).
 
 ### Tool
 

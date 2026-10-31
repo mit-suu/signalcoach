@@ -31,19 +31,20 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   }
 
   return (
-    <div className="auth-wrap">
-      <div style={{ gridColumn: "1 / span 6" }}>
-        <h1>{isRegister ? "Giữ lịch sử luyện tập của bạn." : "Chào mừng quay lại."}</h1>
-        <p className="muted">
+    <div className="wrap page auth">
+      <div className="auth-intro">
+        <p className="eyebrow">{isRegister ? "Đăng ký" : "Đăng nhập"}</p>
+        <h1>{isRegister ? "Giữ lịch sử luyện tập của bạn." : "Chào mừng bạn quay lại."}</h1>
+        <p className="lead">
           {isRegister
-            ? "Không bắt buộc — bạn vẫn luyện được mà không cần tài khoản. Đăng ký để giữ các buổi đã luyện trên trình duyệt này và mở lại ở máy khác."
+            ? "Không bắt buộc: bạn vẫn luyện được mà không cần tài khoản. Đăng ký để giữ các buổi đã luyện trên trình duyệt này và mở lại ở máy khác."
             : "Các buổi bạn vừa luyện trên trình duyệt này sẽ được gộp vào tài khoản."}
         </p>
       </div>
-      <form className="auth-form" onSubmit={submit}>
+      <form className="card auth-form" onSubmit={submit}>
         {isRegister && (
           <div className="field">
-            <label htmlFor="displayName">Tên hiển thị (tuỳ chọn)</label>
+            <label htmlFor="displayName">Tên hiển thị (không bắt buộc)</label>
             <input id="displayName" className="input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={60} />
           </div>
         )}
@@ -52,7 +53,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           <input id="email" type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
         </div>
         <div className="field">
-          <label htmlFor="password">Mật khẩu{isRegister ? " (tối thiểu 8 ký tự)" : ""}</label>
+          <label htmlFor="password">Mật khẩu{isRegister ? " (ít nhất 8 ký tự)" : ""}</label>
           <input
             id="password"
             type="password"
@@ -64,12 +65,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             autoComplete={isRegister ? "new-password" : "current-password"}
           />
         </div>
-        {error && <div className="tag tag-accent" style={{ padding: "8px 12px", fontSize: 13 }}>{error}</div>}
-        <button className="btn btn-primary btn-wide" disabled={busy}>
-          {busy ? "Đang xử lý…" : isRegister ? "Đăng ký" : "Đăng nhập"}
-          <ArrowRight />
+        {error && <div className="error-banner" role="alert">{error}</div>}
+        <button className="btn btn-primary" disabled={busy}>
+          {busy ? "Đang xử lý…" : isRegister ? "Đăng ký" : "Đăng nhập"} <ArrowRight />
         </button>
-        <p className="muted" style={{ fontSize: 13 }}>
+        <p className="small">
           {isRegister ? (
             <>Đã có tài khoản? <Link href="/login">Đăng nhập</Link></>
           ) : (

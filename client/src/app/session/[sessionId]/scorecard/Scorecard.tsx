@@ -2,22 +2,35 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { ApiError, api } from "@/lib/api";
-import type { ScorecardFeedback, ScorecardSignal, SessionView } from "@/types/api";
+import type { ScorecardSignal, SessionView, SignalStatus } from "@/types/api";
 import { ArrowRight } from "@/components/BrandMark";
-import { DotLegend, SignalDots } from "@/components/SignalDots";
-import { QUESTION_TEXT, SIGNAL_TEXT, fmtDate, fmtTime, pct, shortName } from "@/lib/labels";
+import { buildFixes, MAX_FIXES, type Fix } from "@/lib/fixes";
+import { CLUE_EXPLAINER, QUESTION_TEXT, SIGNAL_TEXT, fmtDate, pct, plain, shortName, turnNo } from "@/lib/labels";
 
-const HIGHLIGHT = 3; // FR-10: at most 3 mistakes highlighted, the rest on demand
+/** Ring colours, in the order the ring is drawn. */
+const RING: [SignalStatus, string][] = [
+  ["caught", "var(--ok)"],
+  ["partial", "var(--part)"],
+  ["missed", "var(--miss)"],
+  ["unsure", "#C9BBA6"],
+];
 
+/**
+ * Scorecard, ordered so the first 10 seconds say what to do differently next time:
+ * head (clues found + ring) → "3 điều cần sửa" (asked → why → better) → collapsible clue list →
+ * next-session call to action.
+ */
 export function Scorecard({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = use(params);
   const router = useRouter();
   const [session, setSession] = useState<SessionView | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [retrying, setRetrying] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [againError, setAgainError] = useState<string | null>(null);
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     api
@@ -28,6 +41,8 @@ export function Scorecard({ params }: { params: Promise<{ sessionId: string }> }
       })
       .catch((e: ApiError) => setError(e));
   }, [sessionId, router]);
+
+  const fixes = useMemo(() => (session?.scorecard ? buildFixes(session.scorecard, session.turns, session.persona.name) : []), [session]);
 
   async function retry() {
     setRetrying(true);
@@ -40,58 +55,63 @@ export function Scorecard({ params }: { params: Promise<{ sessionId: string }> }
     }
   }
 
+  // A failed restart keeps the scorecard on screen; the error shows next to the button.
   async function again() {
-    const s = await api.createSession(session!.guideId);
-    router.push(`/session/${s.id}`);
+    setStarting(true);
+    setAgainError(null);
+    try {
+      const s = await api.createSession(session!.guideId);
+      router.push(`/session/${s.id}`);
+    } catch (e) {
+      setAgainError(`Chưa bắt đầu được buổi mới. ${(e as Error).message}`);
+      setStarting(false);
+    }
   }
 
   if (error) {
     return (
-      <div className="state-msg">
+      <div className="wrap state-msg">
         <h2>Không mở được bảng đánh giá</h2>
         <p className="muted">{error.message}</p>
         <Link href="/history" className="btn btn-secondary">Về lịch sử</Link>
       </div>
     );
   }
-  if (!session) return <div className="state-msg muted">Đang tải bảng đánh giá…</div>;
+  if (!session) return <div className="wrap state-msg muted">Đang tải bảng đánh giá…</div>;
 
-  const personaShort = shortName(session.persona.name);
-  const when = `${fmtDate(session.startedAt)} · ${fmtTime(session.startedAt)} · ${session.questionCount} câu hỏi`;
+  const name = shortName(session.persona.name);
+  const meta = `${session.guideTitle} · với ${name} · ${fmtDate(session.startedAt)} · ${session.questionCount} câu hỏi`;
 
-  // S09 — too short
+  // Too short to score
   if (session.status === "insufficient") {
     return (
-      <div className="section scorecard">
-        <div className="card-kicker">{session.guideTitle} · với {personaShort}</div>
-        <div className="muted" style={{ fontSize: 13, marginBottom: 24 }}>{when}</div>
-        <SignalDots statuses={Array.from({ length: session.signalCount }, () => "not_surfaced")} />
-        <h2 style={{ marginTop: 24 }}>Chưa đủ để chấm điểm</h2>
-        <p className="muted">Hỏi ít nhất {session.minQuestionsToScore} câu để có đủ dữ liệu góp ý. Buổi này đã hỏi {session.questionCount} câu.</p>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button className="btn btn-primary" onClick={again}>Thử lại với {personaShort}</button>
-          <Link href="/" className="btn btn-secondary">Chọn kịch bản khác</Link>
+      <div className="wrap page page-narrow">
+        <div className="card card-pop stack">
+          <p className="eyebrow">{meta}</p>
+          <h1>Buổi này ngắn quá để chấm điểm</h1>
+          <p className="lead">Hãy hỏi ít nhất {session.minQuestionsToScore} câu để có đủ điều để góp ý. Buổi này bạn hỏi {session.questionCount} câu.</p>
+          <div className="cta">
+            <button className="btn btn-primary" onClick={again} disabled={starting}>Phỏng vấn lại {name} <ArrowRight /></button>
+            <Link href="/" className="btn btn-secondary">Chọn người khác</Link>
+          </div>
+          {againError && <p className="error-inline" role="alert">{againError}</p>}
         </div>
       </div>
     );
   }
 
-  // S06b — review failed; the conversation is safe
+  // Review failed; the conversation is safe
   if (!session.scorecard) {
     return (
-      <div className="section scorecard">
-        <div className="card-kicker">{session.guideTitle} · với {personaShort}</div>
-        <div className="muted" style={{ fontSize: 13, marginBottom: 24 }}>{when}</div>
-        <div className="turn-ticks">
-          {session.turns.map((t) => (
-            <span key={t.index} className={t.role === "user" ? "tick user" : "tick"} />
-          ))}
-        </div>
-        <h3 style={{ marginTop: 24 }}>Chưa tạo được bảng đánh giá</h3>
-        <p className="muted">{session.scorecardError ?? "Hội thoại của bạn vẫn được lưu."}</p>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button className="btn btn-primary" onClick={retry} disabled={retrying}>{retrying ? "Đang đọc lại…" : "Thử lại"}</button>
-          <Link href={`/session/${sessionId}/review`} className="btn btn-secondary">Xem hội thoại</Link>
+      <div className="wrap page page-narrow">
+        <div className="card stack">
+          <p className="eyebrow">{meta}</p>
+          <h2>Chưa tạo được bảng đánh giá</h2>
+          <p className="muted">{session.scorecardError ?? "Cuộc trò chuyện của bạn vẫn được lưu."} Bấm thử lại sau ít phút.</p>
+          <div className="cta">
+            <button className="btn btn-primary" onClick={retry} disabled={retrying}>{retrying ? "Đang đọc lại…" : "Thử lại"}</button>
+            <Link href={`/session/${sessionId}/review`} className="btn btn-secondary">Xem lại cuộc trò chuyện</Link>
+          </div>
         </div>
       </div>
     );
@@ -99,160 +119,199 @@ export function Scorecard({ params }: { params: Promise<{ sessionId: string }> }
 
   const sc = session.scorecard;
   const complete = session.status === "complete";
+  const total = sc.counts.total || sc.signals.length;
+  const found = sc.counts.caught;
   const score = pct(sc.score);
-  const toRewrite = sc.feedback.length;
-  const shown = showAll ? sc.feedback : sc.feedback.slice(0, HIGHLIGHT);
-  const notSurfaced = sc.signals.filter((s) => s.status === "not_surfaced");
+  const [focus, ...moreFocus] = sc.focus;
+  const shownTurns = new Set(fixes.filter((x) => x.source === "feedback").map((x) => x.turnIndex));
+  const restFeedback = [...sc.feedback].sort((a, b) => b.impact - a.impact).filter((f) => !shownTurns.has(f.turnIndex));
+
+  const stops = ringStops(sc.counts, total);
 
   return (
-    <div className="scorecard">
-      {/* header: score + dots */}
-      <div className="section grid-12 sc-head">
-        <div style={{ gridColumn: "1 / span 6" }}>
-          <div className="card-kicker">{session.guideTitle} · với {personaShort}</div>
-          <div className="muted" style={{ fontSize: 13 }}>{when}</div>
-          {complete ? (
-            <>
-              <div className="score-big">
-                <span>{score}</span>
-                <span className="score-unit">%</span>
-              </div>
-              <div className="muted">Khả năng bắt tín hiệu</div>
-            </>
-          ) : (
-            <>
-              <div className="score-big score-incomplete">Chưa hoàn thành</div>
-              <div className="muted">Kết thúc sớm — không chấm điểm. {personaShort} còn {notSurfaced.length} điều chưa kể.</div>
-            </>
+    <div className="wrap score">
+      <section className="score-head">
+        <div>
+          <p className="eyebrow">{meta}</p>
+          <h1>
+            Bạn tìm được <span className="big">{found}</span>/{total} manh mối
+          </h1>
+          {sc.summary && <p className="lead">{plain(sc.summary, name)}</p>}
+          {!complete && <p className="small">Buổi kết thúc sớm nên chưa chấm điểm. {name} còn vài chuyện chưa kịp kể.</p>}
+        </div>
+        <div className="score-viz">
+          <div className="ring" style={{ background: `radial-gradient(closest-side, var(--surface) 72%, transparent 73%), conic-gradient(${stops.join(", ")})` }} role="img" aria-label={`Tìm được ${found} trên ${total} manh mối`}>
+            <span>{found}/{total}</span>
+          </div>
+          <ul className="ring-legend">
+            {(["caught", "partial", "missed", "unsure", "not_surfaced"] as const)
+              .filter((k) => sc.counts[k] > 0)
+              .map((k) => (
+                <li key={k}><span className={`dot dot-${k}`} />{SIGNAL_TEXT[k]}: {sc.counts[k]}</li>
+              ))}
+          </ul>
+          {complete && score !== null && <p className="small">Điểm buổi này: <b>{score}/100</b></p>}
+        </div>
+      </section>
+
+      <section aria-labelledby="fixes-title">
+        <h2 id="fixes-title">{fixes.length > 1 ? `${fixes.length} điều cần sửa ở buổi sau` : "Điều cần sửa ở buổi sau"}</h2>
+        {fixes.length === 0 ? (
+          <div className="card fix-none">
+            <b>Không có lỗi lớn nào.</b>
+            <p className="muted">Các câu hỏi của bạn đều mở và bám theo câu chuyện. Buổi sau cứ giữ cách hỏi này.</p>
+          </div>
+        ) : (
+          <ol className="fixes">
+            {fixes.map((f, i) => (
+              <FixCard key={f.key} f={f} n={i + 1} sessionId={sessionId} />
+            ))}
+          </ol>
+        )}
+        {restFeedback.length > 0 && (
+          <div className="more-fixes">
+            <button className="btn-link" onClick={() => setShowMore((v) => !v)} aria-expanded={showMore}>
+              {showMore ? "Ẩn bớt" : `Xem thêm ${restFeedback.length} câu nên hỏi khác đi`}
+            </button>
+            {showMore && (
+              <ul className="more-list">
+                {restFeedback.map((f) => (
+                  <li key={f.turnIndex}>
+                    <span className="tag tag-neutral">{QUESTION_TEXT[f.type]}</span>
+                    <div>
+                      <p className="asked-line">
+                        <Link href={`/session/${sessionId}/review#t${f.turnIndex}`}>{turnNo(f.turnIndex)}</Link> “{f.original}”
+                      </p>
+                      <p className="better-line"><ArrowRight size={14} /> “{f.rewrite}”</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+        {fixes.length < MAX_FIXES && fixes.length > 0 && <p className="small">Chỉ có {fixes.length} điều đáng sửa trong buổi này.</p>}
+      </section>
+
+      <details className="clues">
+        <summary>
+          <span className="sum-title">{total} manh mối trong buổi này</span>
+          <span className="small">Bấm để xem từng manh mối</span>
+        </summary>
+        <p className="explain-line clue-explainer">{CLUE_EXPLAINER}</p>
+        <ul>
+          {sc.signals.map((s) => (
+            <ClueRow key={s.signalId} s={s} sessionId={sessionId} name={name} />
+          ))}
+        </ul>
+      </details>
+
+      <section className="next">
+        <div>
+          <p className="eyebrow">Buổi sau</p>
+          <h2>{focus ? plain(focus.skill, name) : "Luyện lại với trọng tâm này"}</h2>
+          <p>{focus ? plain(focus.why, name) : `Phỏng vấn lại ${name} và thử sửa những điều ở trên.`} Nếu bật gợi ý trong buổi, SignalCoach sẽ nhắc bạn mỗi khi {name} nhắc thoáng qua một chi tiết.</p>
+          {moreFocus.length > 0 && (
+            <ul className="next-focus">
+              {moreFocus.map((f) => (
+                <li key={f.skill}>
+                  <b>{plain(f.skill, name)}</b> {plain(f.why, name)}
+                </li>
+              ))}
+            </ul>
           )}
         </div>
-        <div style={{ gridColumn: "8 / span 5", alignSelf: "end" }}>
-          <SignalDots statuses={sc.signals.map((s) => s.status)} labels={sc.signals.map((s) => s.label)} size={22} />
-          <div className="sc-dot-labels">
-            {sc.signals.map((s) => (
-              <span key={s.signalId} className="muted">{s.label}</span>
-            ))}
-          </div>
-          <DotLegend counts={sc.counts} />
-        </div>
-      </div>
-
-      {sc.summary && (
-        <div className="section">
-          <p style={{ margin: 0, fontSize: 16, maxWidth: 720 }}>{sc.summary}</p>
-        </div>
-      )}
-
-      {/* signals (FR-9) */}
-      <div className="section">
-        <div className="sc-row-head">
-          <h3 style={{ margin: 0 }}>Tín hiệu</h3>
-          <Link href={`/session/${sessionId}/review`}>Toàn bộ hội thoại</Link>
-        </div>
-        <div className="sig-table">
-          <div className="sig-head muted">
-            <span />
-            <span>{personaShort} nói</span>
-            <span>Bạn hỏi</span>
-            <span>Có thể hỏi</span>
-          </div>
-          {sc.signals.map((s) => (
-            <SignalRow key={s.signalId} s={s} sessionId={sessionId} personaShort={personaShort} />
-          ))}
-        </div>
-      </div>
-
-      {/* question quality (FR-10) */}
-      <div className="section">
-        <div className="sc-row-head">
-          <h3 style={{ margin: 0 }}>Câu hỏi của bạn</h3>
-          <span className="muted" style={{ fontSize: 13 }}>
-            {toRewrite === 0 ? "Không có câu nào cần viết lại — tốt lắm" : `${toRewrite} câu nên viết lại · sắp theo mức ảnh hưởng tới tín hiệu`}
-          </span>
-        </div>
-        {shown.map((f) => (
-          <FeedbackRow key={f.turnIndex} f={f} sessionId={sessionId} />
-        ))}
-        {toRewrite > HIGHLIGHT && (
-          <button className="btn btn-ghost" onClick={() => setShowAll((v) => !v)}>
-            {showAll ? "Thu gọn" : `Xem thêm ${toRewrite - HIGHLIGHT}`}
+        <div className="cta">
+          <button className="btn btn-primary" onClick={again} disabled={starting}>
+            {starting ? "Đang chuẩn bị…" : `Phỏng vấn lại ${name}`} <ArrowRight />
           </button>
-        )}
-      </div>
-
-      {/* focus for next time */}
-      <div className="section grid-12">
-        <h6 style={{ gridColumn: "1 / -1", marginBottom: 20 }}>Tập trung lần sau</h6>
-        {sc.focus.map((f, i) => (
-          <div key={f.skill} className="focus-item" style={{ gridColumn: "span 4" }}>
-            <span className="focus-n">{i + 1}</span>
-            <div>
-              <div style={{ fontWeight: 800 }}>{f.skill}</div>
-              <p className="muted" style={{ margin: "4px 0 0", fontSize: 14 }}>{f.why}</p>
-              {f.principleId && (
-                <Link href={`/principles#${f.principleId}`} className="principle-link">
-                  <span className="tag tag-outline">{f.principleId}</span>
-                </Link>
-              )}
-            </div>
-          </div>
-        ))}
-        <div style={{ gridColumn: "1 / -1", display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
-          <Link href="/" className="btn btn-primary">Thử kịch bản mới <ArrowRight size={16} /></Link>
-          <button className="btn btn-secondary" onClick={again}>Luyện lại kịch bản này</button>
-          <Link href="/history" className="btn btn-ghost">Lịch sử</Link>
+          <Link href={`/session/${sessionId}/review`} className="btn btn-ghost">Xem lại toàn bộ cuộc trò chuyện</Link>
+          <Link href="/#chon-nguoi" className="btn btn-ghost">Chọn người khác</Link>
         </div>
-      </div>
+        {againError && <p className="error-inline error-inline-dark" role="alert">{againError}</p>}
+      </section>
     </div>
   );
 }
 
-function SignalRow({ s, sessionId, personaShort }: { s: ScorecardSignal; sessionId: string; personaShort: string }) {
-  const notReached = s.status === "not_surfaced";
+/** conic-gradient stops for the ring: found, half-found, missed, unsure, then the empty track. */
+function ringStops(counts: Record<string, number>, total: number): string[] {
+  const stops: string[] = [];
+  let at = 0;
+  for (const [k, color] of RING) {
+    const n = counts[k] ?? 0;
+    if (!n || !total) continue;
+    stops.push(`${color} ${at}% ${at + (n / total) * 100}%`);
+    at += (n / total) * 100;
+  }
+  stops.push(`var(--track) ${at}% 100%`);
+  return stops;
+}
+
+function FixCard({ f, n, sessionId }: { f: Fix; n: number; sessionId: string }) {
   return (
-    <div className={`sig-row sig-${s.status}`}>
-      <span className={`dot dot-${s.status}`} />
-      <div>
-        <div className="sig-label">
-          {s.label} <span className={`tag ${s.status === "caught" ? "tag-accent-2" : "tag-neutral"}`}>{SIGNAL_TEXT[s.status]}</span>
+    <li className="fix">
+      <h3>
+        <span className="num">{n}</span>
+        {f.title}
+      </h3>
+      <dl>
+        <div className="asked">
+          <dt>
+            {f.turnIndex !== null ? (
+              <>Bạn đã hỏi <Link href={`/session/${sessionId}/review#t${f.turnIndex}`}>{turnNo(f.turnIndex)}</Link></>
+            ) : (
+              "Bạn đã hỏi"
+            )}
+          </dt>
+          <dd>{f.asked ? `“${f.asked}”` : "Bạn chưa hỏi lại câu nào."}</dd>
         </div>
-        {notReached ? (
-          <div className="muted" style={{ fontSize: 13 }}>{personaShort} chưa kịp kể điều này.</div>
-        ) : (
-          <div className="sig-quote">“{s.personaQuote}”{s.surfacedTurn !== null && <Link href={`/session/${sessionId}/review#t${s.surfacedTurn}`} className="muted"> #{s.surfacedTurn}</Link>}</div>
-        )}
-        {s.status === "unsure" && <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>Hệ thống chưa chắc chắn — không tính vào điểm. {s.note}</div>}
-      </div>
-      <div className="sig-asked">
-        {s.evidenceTurn !== null && s.evidenceQuote ? (
-          <>
-            <Link href={`/session/${sessionId}/review#t${s.evidenceTurn}`} className="muted">#{s.evidenceTurn}</Link> {s.evidenceQuote}
-          </>
-        ) : (
-          <span className="muted">—</span>
-        )}
-      </div>
-      <div className="sig-suggest">{s.suggestedQuestion ?? <span className="muted">—</span>}</div>
-    </div>
+        <div className="why">
+          <dt>Vì sao chưa tốt</dt>
+          <dd>{f.why}</dd>
+        </div>
+        <div className="better">
+          <dt>Nên hỏi</dt>
+          <dd>“{f.better}”</dd>
+        </div>
+      </dl>
+      {f.principleId && f.principleName && (
+        <Link href={`/principles#${f.principleId}`} className="fix-principle">Đọc thêm: {f.principleName}</Link>
+      )}
+    </li>
   );
 }
 
-function FeedbackRow({ f, sessionId }: { f: ScorecardFeedback; sessionId: string }) {
+function ClueRow({ s, sessionId, name }: { s: ScorecardSignal; sessionId: string; name: string }) {
+  const at = (n: number | null) => (n === null ? null : <Link href={`/session/${sessionId}/review#t${n}`}>{turnNo(n)}</Link>);
+  let detail: React.ReactNode;
+  switch (s.status) {
+    case "caught":
+      detail = <>Bạn hỏi sâu ở {at(s.evidenceTurn) ?? "một câu sau đó"}</>;
+      break;
+    case "partial":
+      detail = <>Bạn chạm tới ở {at(s.evidenceTurn) ?? "một câu sau đó"} rồi chuyển chuyện</>;
+      break;
+    case "missed":
+      detail = <>{name} nhắc ở {at(s.surfacedTurn) ?? "một lượt"}, bạn không hỏi lại</>;
+      break;
+    case "unsure":
+      detail = <>Chưa rõ bạn có hỏi tới không, nên không tính điểm</>;
+      break;
+    default:
+      detail = <>Cần thêm vài câu hỏi để {name} kể tới chuyện này</>;
+  }
   return (
-    <div className="fb-row">
-      <span className="tag tag-neutral">{QUESTION_TEXT[f.type]}</span>
-      <div>
-        <div className="fb-original">
-          <Link href={`/session/${sessionId}/review#t${f.turnIndex}`} className="muted">#{f.turnIndex}</Link> {f.original}
-        </div>
-        <div className="fb-rewrite">
-          <ArrowRight size={14} /> {f.rewrite}
-        </div>
+    <li>
+      <span className={`chip chip-${s.status}`}>{SIGNAL_TEXT[s.status]}</span>
+      <div className="clue-main">
+        <b>{s.label}</b>
+        {s.personaQuote && s.status !== "not_surfaced" && <p className="clue-quote">{name}: “{s.personaQuote}”</p>}
+        {(s.status === "caught" || s.status === "partial") && s.evidenceQuote && <p className="clue-quote">Bạn: “{s.evidenceQuote}”</p>}
+        {s.status === "unsure" && s.note && <p className="clue-quote">{plain(s.note, name)}</p>}
+        {s.suggestedQuestion && s.status !== "caught" && <p className="clue-suggest">Có thể hỏi: “{s.suggestedQuestion}”</p>}
       </div>
-      <Link href={`/principles#${f.principleId}`} className="principle-link">
-        <span className="tag tag-outline">{f.principleId}</span>
-        <span>{f.principleName}</span>
-      </Link>
-    </div>
+      <span className="small">{detail}</span>
+    </li>
   );
 }

@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { PublicGuide } from "@/types/api";
-import { ArrowRight, Avatar } from "@/components/BrandMark";
+import { ArrowRight, Avatar, BulbIcon } from "@/components/BrandMark";
 import { Dialog } from "@/components/Dialog";
+import { plain, shortName } from "@/lib/labels";
 
-/** S02 — Guide brief before starting. */
+/** Before the interview: who you are talking to, the goal, how clues work, and a start button. */
 export function GuideBrief({ params }: { params: Promise<{ guideId: string }> }) {
   const { guideId } = use(params);
   const router = useRouter();
@@ -42,70 +43,97 @@ export function GuideBrief({ params }: { params: Promise<{ guideId: string }> })
     }
   }
 
-  if (error) return <div className="error-banner">{error}</div>;
-  if (!guide) return <div className="state-msg muted">Đang tải…</div>;
+  if (error) return <div className="wrap"><div className="error-banner">{error}</div></div>;
+  if (!guide) return <div className="wrap state-msg muted">Đang tải…</div>;
+  return <GuideIntro guide={guide} onStart={start} starting={starting} onDelete={guide.custom ? () => setConfirmDelete(true) : undefined} confirmDelete={confirmDelete} onConfirmDelete={remove} onCancelDelete={() => setConfirmDelete(false)} />;
+}
+
+/** Shared by the brief page and the guide creator's result. */
+export function GuideIntro({
+  guide,
+  onStart,
+  starting,
+  onDelete,
+  onEdit,
+  confirmDelete,
+  onConfirmDelete,
+  onCancelDelete,
+}: {
+  guide: PublicGuide;
+  onStart: () => void;
+  starting: boolean;
+  onDelete?: () => void;
+  onEdit?: () => void;
+  confirmDelete?: boolean;
+  onConfirmDelete?: () => void;
+  onCancelDelete?: () => void;
+}) {
   const p = guide.persona;
+  const name = shortName(p.name);
 
   return (
-    <>
-      <div className="section grid-12">
-        <Link href="/" className="muted back-link" style={{ gridColumn: "1 / -1", marginBottom: 16 }}>
-          ← Tất cả kịch bản
-        </Link>
-        <div style={{ gridColumn: "1 / span 7" }}>
-          <div className="card-kicker">{guide.context}{guide.custom ? " · kịch bản của bạn" : ""}</div>
-          <h1 style={{ margin: "6px 0 16px" }}>{guide.title}</h1>
-          <h6 className="muted">Mục tiêu</h6>
-          <p style={{ fontSize: 16 }}>{guide.goal}</p>
-          <p className="muted" style={{ fontSize: 13 }}>
-            Ẩn trong cuộc trò chuyện · {guide.signalCount} tín hiệu · ~{guide.estimatedMinutes} phút
-          </p>
-        </div>
-        <div style={{ gridColumn: "9 / span 4", alignSelf: "end", display: "grid", gap: 8 }}>
-          <button className="btn btn-primary btn-wide" style={{ width: "100%" }} onClick={start} disabled={starting}>
-            {starting ? "Đang chuẩn bị…" : "Bắt đầu phỏng vấn"}
-            <ArrowRight />
-          </button>
-          {guide.custom && (
-            <button className="btn btn-ghost" onClick={() => setConfirmDelete(true)} disabled={starting}>
-              Xoá kịch bản này
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="section grid-12">
-        <div className="persona-line" style={{ gridColumn: "1 / span 5", alignItems: "flex-start" }}>
-          <Avatar initial={p.initial} size={64} />
-          <div>
-            <h4 style={{ margin: 0 }}>
-              {p.name}, {p.age}
-            </h4>
-            <p className="muted">{p.background}</p>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+    <div className="wrap page brief">
+      <Link href="/#chon-nguoi" className="back-link">← Chọn người khác</Link>
+      <div className="brief-grid">
+        <section className="card card-pop brief-main">
+          <p className="card-kicker">{guide.title}{guide.custom ? " · người dùng bạn tạo" : ""}</p>
+          <div className="who-card">
+            <Avatar initial={p.initial} size="lg" />
+            <div>
+              <h1>{p.name}, {p.age}</h1>
+              <span>{p.tagline}</span>
+            </div>
+          </div>
+          <p>{plain(p.background, name)}</p>
+          {p.traits.length > 0 && (
+            <div className="row">
               {p.traits.map((t) => (
                 <span key={t} className="tag tag-neutral">{t}</span>
               ))}
             </div>
+          )}
+          <div>
+            <span className="label">Mục tiêu buổi này</span>
+            <p>{plain(guide.goal, name)}</p>
           </div>
-        </div>
-        <div style={{ gridColumn: "7 / span 6" }}>
-          <h6 className="muted">Câu hỏi gợi ý</h6>
-          {guide.suggestedQuestions.map((q, i) => (
-            <div key={q} className="q-row">
-              <span className="muted" style={{ fontVariantNumeric: "tabular-nums" }}>{String(i + 1).padStart(2, "0")}</span>
-              {q}
-            </div>
-          ))}
-          <p className="muted" style={{ fontSize: 13, marginTop: 12 }}>
-            Chỉ là điểm khởi đầu — hãy đi theo cuộc trò chuyện, không phải danh sách.
-          </p>
-        </div>
+          <div className="cta">
+            <button className="btn btn-primary" onClick={onStart} disabled={starting}>
+              {starting ? "Đang chuẩn bị…" : `Bắt đầu phỏng vấn ${name}`} <ArrowRight />
+            </button>
+            {onEdit && <button className="btn btn-secondary" onClick={onEdit} disabled={starting}>Sửa mô tả, tạo lại</button>}
+            {onDelete && <button className="btn-link" onClick={onDelete} disabled={starting}>Xoá người dùng này</button>}
+          </div>
+          <p className="small">Khoảng {guide.estimatedMinutes} phút · chat bằng chữ · lưu tự động</p>
+        </section>
+
+        <aside className="stack">
+          <section className="card brief-clues">
+            <span className="hint-icon"><BulbIcon /></span>
+            <h2>{name} giấu {guide.signalCount} manh mối. Hỏi đúng thì bạn tìm ra.</h2>
+            <p className="muted">
+              Manh mối là chi tiết {name} chỉ nhắc thoáng qua một lần, ví dụ một câu than nhẹ hay một chuyện kể dở. Khi nghe thấy, hãy hỏi sâu ngay: “Lần gần nhất chuyện đó xảy ra là khi nào?”. Lướt qua thì chi tiết đó trôi mất.
+            </p>
+            <p className="muted">Nếu bật gợi ý trong buổi, một gợi ý nhỏ sẽ hiện khi {name} vừa nhắc điều gì đáng hỏi. Bạn bật hoặc tắt gợi ý được bất cứ lúc nào.</p>
+          </section>
+          {guide.suggestedQuestions.length > 0 && (
+            <section className="card">
+              <span className="label">Câu mở đầu gợi ý</span>
+              <ol className="q-list">
+                {guide.suggestedQuestions.map((q) => (
+                  <li key={q}>{q}</li>
+                ))}
+              </ol>
+              <p className="small">Chỉ để bắt đầu. Sau đó hãy đi theo câu chuyện của {name}, không theo danh sách.</p>
+            </section>
+          )}
+        </aside>
       </div>
-      {confirmDelete && (
-        <Dialog title={`Xoá kịch bản "${guide.title}"?`} confirmLabel="Xoá" onConfirm={remove} onCancel={() => setConfirmDelete(false)} danger>
-          Các buổi đã luyện với kịch bản này vẫn còn trong lịch sử. Không thể hoàn tác.
+
+      {confirmDelete && onConfirmDelete && onCancelDelete && (
+        <Dialog title={`Xoá ${name} (${guide.title})?`} confirmLabel="Xoá" onConfirm={onConfirmDelete} onCancel={onCancelDelete} danger>
+          Các buổi bạn đã luyện với {name} vẫn còn trong lịch sử. Không thể khôi phục.
         </Dialog>
       )}
-    </>
+    </div>
   );
 }

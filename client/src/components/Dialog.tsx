@@ -10,10 +10,11 @@ interface DialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   busy?: boolean;
+  /** Destructive action (delete): the confirm button is red. */
   danger?: boolean;
 }
 
-/** Modernist confirm dialog (design S05 / S11 / S11b). Escape cancels. */
+/** Confirm dialog. Escape or a click outside cancels. */
 export function Dialog({ title, children, confirmLabel, cancelLabel = "Huỷ", onConfirm, onCancel, busy, danger }: DialogProps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && !busy && onCancel();
@@ -28,7 +29,7 @@ export function Dialog({ title, children, confirmLabel, cancelLabel = "Huỷ", o
         <div className="dialog-body">{children}</div>
         <div className="dialog-actions">
           <button className="btn btn-secondary" onClick={onCancel} disabled={busy}>{cancelLabel}</button>
-          <button className={`btn ${danger ? "btn-primary" : "btn-primary"}`} onClick={onConfirm} disabled={busy} autoFocus>
+          <button className={`btn ${danger ? "btn-danger" : "btn-primary"}`} onClick={onConfirm} disabled={busy} autoFocus>
             {busy ? "Đang xử lý…" : confirmLabel}
           </button>
         </div>

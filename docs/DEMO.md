@@ -21,8 +21,9 @@ Chuẩn bị: API và web đang chạy (xem README), trình duyệt ở chế đ
 8. **Kết thúc** → màn "Đang đọc lại buổi phỏng vấn" (~20 s) → **Scorecard**: điểm, 6 ô tín hiệu,
    bảng *Mai nói / Bạn hỏi / Có thể hỏi* với trích dẫn và số lượt, 3 câu nên viết lại kèm mã nguyên
    tắc, 1–3 trọng tâm lần sau.
-9. **Toàn bộ hội thoại** → bật *Hiện quyết định của agent*: mỗi lượt persona có action + lý do + tool
-   call; mỗi câu hỏi có loại câu; cuối trang là *nhật ký tự kiểm tra* (những gì self-check đã sửa).
+9. **Xem lại toàn bộ cuộc trò chuyện** → bật *Giải thích từng lượt*: mỗi lượt persona có một câu nói
+   persona đã làm gì + *Lý do* của agent (lời thường); mỗi câu hỏi có loại câu và vì sao; *nhật ký tự
+   kiểm tra* (những gì self-check đã sửa) nằm trong mục *Chi tiết kỹ thuật* cuối trang.
 10. **Lịch sử**: điểm, trọng tâm đang tập trung, xoá một buổi (hộp xác nhận).
 11. (Tuỳ chọn) **Tạo kịch bản** → bấm một ví dụ → *Dựng kịch bản* (~15–30 s) → persona + câu gợi ý
     mới → bắt đầu luyện trên chính sản phẩm của người xem.
