@@ -1,5 +1,7 @@
 "use client";
 
+import { LoadingState } from "@/components/LoadingState";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
@@ -120,7 +122,7 @@ export default function HomePage() {
             {builtIn.map((g, i) => (
               <GuideCard key={g.id} guide={g} tone={i + 1} primary={i === 0} />
             ))}
-            {!guides && !error && <div className="card muted">Đang tải…</div>}
+            {!guides && !error && <LoadingState label="Đang tìm người để bạn phỏng vấn…" compact />}
             <article className="card card-dashed guide-card">
               <div className="card-top">
                 <span className="avatar avatar-plus">+</span>

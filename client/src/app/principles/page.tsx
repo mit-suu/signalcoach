@@ -1,5 +1,7 @@
 "use client";
 
+import { LoadingState } from "@/components/LoadingState";
+
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { Principle } from "@/types/api";
@@ -26,7 +28,7 @@ export default function PrinciplesPage() {
   }, [items]);
 
   if (error) return <div className="wrap"><div className="error-banner">{error}</div></div>;
-  if (!items) return <div className="wrap state-msg muted">Đang tải…</div>;
+  if (!items) return <LoadingState label="Đang tải nguyên tắc hỏi…" />;
 
   return (
     <div className="wrap page principles">

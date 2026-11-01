@@ -1,5 +1,7 @@
 "use client";
 
+import { LoadingState } from "@/components/LoadingState";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useMemo, useState } from "react";
@@ -77,7 +79,7 @@ export function Scorecard({ params }: { params: Promise<{ sessionId: string }> }
       </div>
     );
   }
-  if (!session) return <div className="wrap state-msg muted">Đang tải bảng đánh giá…</div>;
+  if (!session) return <LoadingState label="Đang tải bảng đánh giá của bạn…" />;
 
   const name = shortName(session.persona.name);
   const meta = `${session.guideTitle} · với ${name} · ${fmtDate(session.startedAt)} · ${session.questionCount} câu hỏi`;

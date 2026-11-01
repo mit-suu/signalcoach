@@ -1,5 +1,7 @@
 "use client";
 
+import { LoadingState } from "@/components/LoadingState";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -140,7 +142,7 @@ export function SessionRoom({ params }: { params: Promise<{ sessionId: string }>
       </div>
     );
   }
-  if (!session || !guide) return <div className="wrap state-msg muted">Đang mở buổi luyện…</div>;
+  if (!session || !guide) return <LoadingState label="Đang mở buổi luyện của bạn…" />;
 
   const name = shortName(guide.persona.name);
   const remaining = session.signalCount - session.signalsSurfaced;

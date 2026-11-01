@@ -1,5 +1,7 @@
 "use client";
 
+import { LoadingState } from "@/components/LoadingState";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useMemo, useState } from "react";
@@ -48,7 +50,7 @@ export function TranscriptReview({ params }: { params: Promise<{ sessionId: stri
   const byFeedback = useMemo(() => new Map(session?.scorecard?.feedback.map((f) => [f.turnIndex, f]) ?? []), [session]);
 
   if (error) return <div className="wrap"><div className="error-banner">{error.message}</div></div>;
-  if (!session) return <div className="wrap state-msg muted">Đang tải cuộc trò chuyện…</div>;
+  if (!session) return <LoadingState label="Đang mở lại cuộc trò chuyện…" />;
 
   const name = shortName(session.persona.name);
   const visible = session.turns.filter((t) => {

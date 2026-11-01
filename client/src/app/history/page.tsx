@@ -1,5 +1,7 @@
 "use client";
 
+import { LoadingState } from "@/components/LoadingState";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
@@ -110,7 +112,7 @@ export default function HistoryPage() {
   }
 
   if (error) return <div className="wrap"><div className="error-banner">{error}</div></div>;
-  if (!rows || !analyses) return <div className="wrap state-msg muted">Đang tải…</div>;
+  if (!rows || !analyses) return <LoadingState label="Đang mở lịch sử của bạn…" />;
 
   if (rows.length === 0 && analyses.length === 0 && !sessionsError && !analysesError) {
     // Empty history

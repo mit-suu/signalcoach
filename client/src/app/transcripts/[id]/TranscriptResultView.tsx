@@ -1,5 +1,7 @@
 "use client";
 
+import { LoadingState } from "@/components/LoadingState";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useMemo, useState } from "react";
@@ -60,7 +62,7 @@ export function TranscriptResultView({ params }: { params: Promise<{ id: string 
       </div>
     );
   }
-  if (!analysis) return <div className="wrap state-msg muted">Đang tải kết quả…</div>;
+  if (!analysis) return <LoadingState label="Đang tải kết quả phỏng vấn…" />;
 
   const { result, turns, me } = analysis;
   const myQuestions = turns.filter((t) => t.speaker === me).length;

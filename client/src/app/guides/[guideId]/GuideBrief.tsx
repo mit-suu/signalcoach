@@ -1,5 +1,7 @@
 "use client";
 
+import { LoadingState } from "@/components/LoadingState";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
@@ -44,7 +46,7 @@ export function GuideBrief({ params }: { params: Promise<{ guideId: string }> })
   }
 
   if (error) return <div className="wrap"><div className="error-banner">{error}</div></div>;
-  if (!guide) return <div className="wrap state-msg muted">Đang tải…</div>;
+  if (!guide) return <LoadingState label="Đang chuẩn bị buổi phỏng vấn…" />;
   return <GuideIntro guide={guide} onStart={start} starting={starting} onDelete={guide.custom ? () => setConfirmDelete(true) : undefined} confirmDelete={confirmDelete} onConfirmDelete={remove} onCancelDelete={() => setConfirmDelete(false)} />;
 }
 
