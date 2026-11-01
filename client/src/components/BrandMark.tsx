@@ -1,5 +1,5 @@
 export function BrandMark({ size = 30 }: { size?: number }) {
-  // The logo video has a white background; multiply blends it into the cream page background.
+  // The brand link supplies the cream backdrop for multiply, including inside the nav's stacking context.
   return <video className="brand-mark" src="/logo.mp4" autoPlay muted loop playsInline aria-hidden style={{ height: size }} />;
 }
 
